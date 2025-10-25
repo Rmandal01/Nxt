@@ -117,33 +117,42 @@ export default function WaitingRoomPage() {
   }
 
   const handleToggleReady = async () => {
-    const newReadyState = !isReady
-    setIsReady(newReadyState)
+    // Optimistically update the UI and capture the new state.
+    // This runs synchronously and guarantees we have the *actual* new state.
+    let intendedNewState;
+    setIsReady((currentState) => {
+      intendedNewState = !currentState;
+      return intendedNewState;
+    });
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user) {
+        // If we can't get a user, we must roll back the UI change.
+        throw new Error('User not found, rolling back UI state.');
+      }
 
+      // Send the *actual* new state (captured above) to the database.
       const { error } = await supabase
         .from('game_participants')
-        .update({ is_ready: newReadyState })
+        .update({ is_ready: intendedNewState }) 
         .eq('room_id', roomId)
         .eq('user_id', user.id)
 
       if (error) {
         console.error('Error updating ready status:', error)
-        // Revert on error
-        setIsReady(!newReadyState)
+        // Roll back the UI.
+        setIsReady((currentState) => !currentState);
       }
     } catch (error) {
       console.error('Failed to update ready status:', error)
-      setIsReady(!newReadyState)
+      setIsReady((currentState) => !currentState);
     }
   }
 
-  const allPlayersReady = players.every((p) => p.isReady) && players.length === 2
+  const allPlayersReady = players.every((p) => p.isReady) && players.length === 2; // need to be more than 1 player
 
   useEffect(() => {
     if (allPlayersReady) {
@@ -272,7 +281,6 @@ export default function WaitingRoomPage() {
             <div className="space-y-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
               <Button
                 onClick={handleToggleReady}
-                disabled={players.length < 2}
                 className={`w-full h-14 text-lg font-semibold transition-all ${
                   isReady
                     ? "bg-success hover:bg-success/90 text-success-foreground"
