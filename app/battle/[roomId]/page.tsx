@@ -131,8 +131,8 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                 {/* Timer */}
                 <div className="text-center">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-accent" />
-                    <span className="text-3xl font-bold font-mono text-accent">{formatTime(timeLeft)}</span>
+                    <Clock className="w-5 h-5" />
+                    <span className="text-3xl font-bold font-mono">{formatTime(timeLeft)}</span>
                   </div>
                   <Progress value={(timeLeft / 180) * 100} className="w-48 h-2" />
                 </div>
