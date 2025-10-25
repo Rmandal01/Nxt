@@ -18,16 +18,60 @@ export default function PlaygroundPage() {
   const [temperature, setTemperature] = useState("0.7")
 
   const handleGenerate = async () => {
-    setIsGenerating(true)
-    console.log("[v0] Generating with prompt:", prompt)
+    if (!prompt.trim()) return
 
-    // Simulate API call
-    setTimeout(() => {
-      setOutput(
-        "This is a sample AI-generated response based on your prompt. In production, this would be the actual AI output from your backend.",
-      )
+    setIsGenerating(true)
+    setOutput("")
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              const jsonStr = line.substring(2)
+              try {
+                const parsed = JSON.parse(jsonStr)
+                if (parsed.content) {
+                  fullText += parsed.content
+                  setOutput(fullText)
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error generating response:', error)
+      setOutput('Error: Failed to generate response. Please try again.')
+    } finally {
       setIsGenerating(false)
-    }, 2000)
+    }
   }
 
   const handleReset = () => {

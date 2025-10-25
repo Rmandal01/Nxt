@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, Clock, User, Send, Lightbulb, Trophy, Zap, Target, Brain } from "lucide-react"
+import { Sparkles, Clock, User, Send, Lightbulb, Trophy, Zap, Target, Brain, X } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 
@@ -16,6 +16,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
   const [phase, setPhase] = useState<"waiting" | "prompting" | "testing" | "results">("prompting")
   const [showTips, setShowTips] = useState(false)
+  const [isTestingPrompt, setIsTestingPrompt] = useState(false)
+  const [testOutput, setTestOutput] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -42,9 +45,62 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     setPhase("testing")
   }
 
-  const handleTest = () => {
-    console.log("[v0] Testing prompt")
-    // Navigate to testing playground
+  const handleTest = async () => {
+    if (!prompt.trim()) return
+
+    setIsTestingPrompt(true)
+    setIsGenerating(true)
+    setTestOutput("")
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (line.startsWith('0:')) {
+              const jsonStr = line.substring(2)
+              try {
+                const parsed = JSON.parse(jsonStr)
+                if (parsed.content) {
+                  fullText += parsed.content
+                  setTestOutput(fullText)
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error testing prompt:', error)
+      setTestOutput('Error: Failed to test prompt. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
@@ -251,6 +307,45 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
             </div>
           </div>
         </div>
+
+        {/* Test Prompt Modal */}
+        {isTestingPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden glass-effect border-primary/20">
+              <div className="p-6 border-b border-border/20 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Prompt Test Results</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTestingPrompt(false)}
+                  className="hover:bg-destructive/10"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Your Prompt:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 text-sm font-mono">
+                    {prompt}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">AI Output:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 min-h-[200px] text-foreground leading-relaxed">
+                    {isGenerating && !testOutput && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        Generating response...
+                      </div>
+                    )}
+                    {testOutput || (isGenerating ? "" : "Output will appear here...")}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </>
   )
