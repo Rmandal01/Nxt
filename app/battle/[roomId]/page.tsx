@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Clock, User, Send, Zap, Target, Brain, X } from "lucide-react"
+import { Clock, User, Send, Zap, Target, Brain, X, BookOpen } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 import { DefaultChatTransport } from "ai"
@@ -38,6 +38,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [isTestingPrompt, setIsTestingPrompt] = useState(false)
   const [testOutput, setTestOutput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isResearching, setIsResearching] = useState(false)
+  const [researchQuery, setResearchQuery] = useState("")
+  const [researchResults, setResearchResults] = useState("")
 
   const [atBottom, setAtBottom] = useState<boolean>(true);
 
@@ -92,6 +95,49 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       setAtBottom(true);
     } else {
       setAtBottom(false);
+    }
+  };
+
+  const handleResearch = async (query: string) => {
+    setIsResearching(true);
+    setResearchResults("");
+    setResearchQuery(query);
+
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          roomId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Research request failed");
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        setResearchResults((prev) => prev + chunk);
+      }
+    } catch (error) {
+      console.error("Research error:", error);
+      setResearchResults("Failed to perform research. Please try again.");
+    } finally {
+      setIsResearching(false);
     }
   };
 
@@ -163,6 +209,14 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     Creative
                   </Badge>
                 </div>
+                <Button
+                  className="w-full mt-4"
+                  variant="outline"
+                  onClick={() => handleResearch(battleTopic)}
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Deep Research Topic
+                </Button>
               </Card>
             </div>
 
@@ -277,6 +331,53 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
             </Card>
           </div>
         )}
+
+        {/* Deep Research Modal */}
+        {isResearching || researchResults ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden glass-effect border-primary/20">
+              <div className="p-6 border-b border-border/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-primary" />
+                  <h3 className="text-xl font-semibold">Deep Research Results</h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setResearchResults("");
+                    setResearchQuery("");
+                  }}
+                  className="hover:bg-destructive/10"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Research Query:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 text-sm">
+                    {researchQuery}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Research Findings:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 min-h-[200px] text-foreground leading-relaxed">
+                    {isResearching && !researchResults && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        Researching topic...
+                      </div>
+                    )}
+                    {researchResults && (
+                      <MarkdownComponent content={researchResults} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        ) : null}
       </div>
     </>
   )
