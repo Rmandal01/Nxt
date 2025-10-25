@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,6 +9,26 @@ import { Progress } from "@/components/ui/progress"
 import { Sparkles, Clock, User, Send, Lightbulb, Trophy, Zap, Target, Brain, X } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
+import { DefaultChatTransport } from "ai"
+import { useChat } from "@ai-sdk/react";
+
+import Markdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+
+function MarkdownComponent({ content }: { content: string }) {
+  return (
+    <Markdown
+      remarkPlugins={[remarkBreaks]}
+      components={{
+        a: ({ children, href }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        ),
+      }}
+    >{content}</Markdown>
+  );
+}
 
 export default function BattleArena({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = use(params)
@@ -19,6 +39,17 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [isTestingPrompt, setIsTestingPrompt] = useState(false)
   const [testOutput, setTestOutput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+
+  const [atBottom, setAtBottom] = useState<boolean>(true);
+
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/ai", // So we use the right route, see https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat#transport.default-chat-transport
+    }),
+  });
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -40,68 +71,30 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const handleSubmit = () => {
-    console.log("[v0] Submitting prompt:", prompt)
-    setPhase("testing")
-  }
-
-  const handleTest = async () => {
-    if (!prompt.trim()) return
-
-    setIsTestingPrompt(true)
-    setIsGenerating(true)
-    setTestOutput("")
-
-    try {
-      const response = await fetch('/api/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }]
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to generate response')
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullText = ""
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const chunk = decoder.decode(value)
-          const lines = chunk.split('\n')
-
-          for (const line of lines) {
-            if (line.startsWith('0:')) {
-              const jsonStr = line.substring(2)
-              try {
-                const parsed = JSON.parse(jsonStr)
-                if (parsed.content) {
-                  fullText += parsed.content
-                  setTestOutput(fullText)
-                }
-              } catch (e) {
-                // Skip invalid JSON
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error testing prompt:', error)
-      setTestOutput('Error: Failed to test prompt. Please try again.')
-    } finally {
-      setIsGenerating(false)
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    sendMessage({ text: prompt });
+    setPrompt("");
+    
+    if (messagesRef.current) {
+      setAtBottom(true); // Just force it
     }
-  }
+  };
+
+  // Auto scroll to bottom when new messages come up
+  useEffect(() => {
+    if (messagesRef.current && atBottom) {
+      messagesRef.current.scrollTo(0, messagesRef.current.scrollHeight);
+    }
+  }, [messages, atBottom]);
+
+  const handleScroll = () => {
+    if (messagesRef.current && messagesRef.current.scrollTop + messagesRef.current.clientHeight >= messagesRef.current.scrollHeight) {
+      setAtBottom(true);
+    } else {
+      setAtBottom(false);
+    }
+  };
 
   return (
     <>
@@ -189,31 +182,57 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                   </div>
                 </div>
 
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Write your prompt here... Be specific, clear, and creative!"
-                  className="min-h-[400px] bg-secondary/30 border-border/50 focus:border-primary transition-colors resize-none font-mono text-base leading-relaxed"
-                />
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col w-full h-[500px] mx-auto px-4">
+                    <div className="overflow-auto px-5 py-6 h-full" ref={messagesRef} onScroll={handleScroll}>
+                      {messages.map(message => (
+                        <div key={message.id}>
+                          {message.parts.map((part, i) => {
+                            const messageKey = `${message.id}-${i}`;
 
-                <div className="mt-6 flex items-center gap-3">
-                  <Button
-                    onClick={handleTest}
-                    variant="outline"
-                    className="flex-1 h-12 border-accent/50 hover:bg-accent/10 hover:border-accent transition-colors bg-transparent"
-                  >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Test Prompt
-                  </Button>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!prompt.trim()}
-                    className="flex-1 h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-                  >
-                    <Send className="w-5 h-5 mr-2" />
-                    Submit Final
-                  </Button>
+                            if (part.type === "text") {
+                              if (message.role === 'user') {
+                                return (
+                                  <div 
+                                    key={messageKey}
+                                    className="py-3 flex justify-end"
+                                  >
+                                    <div className="rounded-full bg-blue-950 p-3 inline">
+                                      <MarkdownComponent content={part.text} />
+                                    </div>
+                                  </div>
+                                );
+                              } else { // AI
+                                return (
+                                  <div key={messageKey}>
+                                    <MarkdownComponent content={part.text} />
+                                    
+                                    <Button variant="outline" className="mt-2">Submit Final</Button>
+                                  </div>
+                                );
+                              }
+                            }
+                          })}
+                        </div>
+                      ))}
+                    </div>
+
+                    <form
+                      onSubmit={handleSubmit}
+                      className="grow flex"
+                    >
+                      <input
+                        className="dark:bg-zinc-900 w-full border border-zinc-300 dark:border-zinc-800 outline-none rounded shadow-xl"
+                        value={prompt}
+                        ref={inputRef}
+                        placeholder="Say something..."
+                        onChange={e => setPrompt(e.currentTarget.value)}
+                      />
+                      <Button type="submit" variant="ghost" className="px-5 py-6"><Send className="w-5 h-5" /></Button>
+                    </form>
+                  </div>
                 </div>
+
               </Card>
             </div>
           </div>
