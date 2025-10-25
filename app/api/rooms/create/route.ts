@@ -58,8 +58,6 @@ export async function POST(request: Request) {
         room_code: roomCode,
         host_id: user.id,
         status: 'waiting',
-        max_players: 2,
-        countdown_duration: 10,
       })
       .select()
       .single()
