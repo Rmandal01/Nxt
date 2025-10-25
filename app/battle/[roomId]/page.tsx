@@ -206,7 +206,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                                   <div key={messageKey}>
                                     <MarkdownComponent content={part.text} />
                                     
-                                    <Button variant="outline" className="mt-2">Submit Final</Button>
+                                    <Button variant="outline" className="mt-2 cursor-pointer">
+                                      Submit Final
+                                    </Button>
                                   </div>
                                 );
                               }
