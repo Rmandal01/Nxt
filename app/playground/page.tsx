@@ -50,19 +50,39 @@ export default function PlaygroundPage() {
           if (done) break
 
           const chunk = decoder.decode(value)
+          console.log('Raw chunk:', chunk) // Debug log
           const lines = chunk.split('\n')
 
           for (const line of lines) {
+            if (!line.trim()) continue
+
+            console.log('Processing line:', line) // Debug log
+
+            // Try different parsing strategies
             if (line.startsWith('0:')) {
               const jsonStr = line.substring(2)
               try {
                 const parsed = JSON.parse(jsonStr)
+                console.log('Parsed 0: format:', parsed) // Debug log
                 if (parsed.content) {
                   fullText += parsed.content
                   setOutput(fullText)
                 }
               } catch (e) {
-                // Skip invalid JSON
+                console.error('Failed to parse 0: format:', e)
+              }
+            } else {
+              // Try parsing as plain JSON
+              try {
+                const parsed = JSON.parse(line)
+                console.log('Parsed plain JSON:', parsed) // Debug log
+                if (parsed.content) {
+                  fullText += parsed.content
+                  setOutput(fullText)
+                }
+              } catch (e) {
+                // Not JSON, might be plain text
+                console.log('Not JSON, treating as text')
               }
             }
           }
