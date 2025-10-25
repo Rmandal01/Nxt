@@ -48,7 +48,7 @@ export default function Home() {
           .from('game_rooms')
           .select('id')
           .eq('room_code', code)
-          .single()
+          .maybeSingle()
 
         if (!existing) {
           isUnique = true
@@ -60,15 +60,21 @@ export default function Home() {
       // Create a temporary user ID (since we don't have auth)
       const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
+      // Make username unique by appending a random suffix
+      const uniqueUsername = `${username.trim()}_${Math.random().toString(36).substring(2, 7)}`
+
       // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
-          username: username.trim()
+          username: uniqueUsername
         })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
+      }
 
       // Create room
       const { data: room, error: roomError } = await supabase
@@ -130,9 +136,16 @@ export default function Home() {
         .select('*')
         .eq('room_code', roomCode.toUpperCase())
         .eq('status', 'waiting')
-        .single()
+        .maybeSingle()
 
-      if (roomError || !room) {
+      if (roomError) {
+        console.error('Room query error:', roomError)
+        setError('Error finding room')
+        setIsJoining(false)
+        return
+      }
+
+      if (!room) {
         setError('Room not found or already started')
         setIsJoining(false)
         return
@@ -144,7 +157,10 @@ export default function Home() {
         .select('*')
         .eq('room_id', room.id)
 
-      if (participantsError) throw participantsError
+      if (participantsError) {
+        console.error('Participants query error:', participantsError)
+        throw participantsError
+      }
 
       if (participants && participants.length >= room.max_players) {
         setError('Room is full')
@@ -155,15 +171,21 @@ export default function Home() {
       // Create a temporary user ID
       const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
+      // Make username unique by appending a random suffix
+      const uniqueUsername = `${username.trim()}_${Math.random().toString(36).substring(2, 7)}`
+
       // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
-          username: username.trim()
+          username: uniqueUsername
         })
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
+      }
 
       // Add user as participant
       const { error: joinError } = await supabase
