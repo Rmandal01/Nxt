@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles, Clock, User, Send, Lightbulb, Trophy, Zap, Target, Brain } from "lucide-react"
+import { Sparkles, Clock, User, Send, Lightbulb, Trophy, Zap, Target, Brain, X } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 
@@ -16,6 +16,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
   const [phase, setPhase] = useState<"waiting" | "prompting" | "testing" | "results">("prompting")
   const [showTips, setShowTips] = useState(false)
+  const [isTestingPrompt, setIsTestingPrompt] = useState(false)
+  const [testOutput, setTestOutput] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -37,14 +40,105 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const handleSubmit = () => {
-    console.log("[v0] Submitting prompt:", prompt)
-    setPhase("testing")
+  const handleSubmit = async () => {
+    if (!prompt.trim()) return
+
+    try {
+      const response = await fetch('/api/rooms/submit-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: roomId,
+          prompt: prompt.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('Error submitting prompt:', data.error)
+        alert(`Failed to submit: ${data.error}`)
+        return
+      }
+
+      console.log('Prompt submitted successfully:', data.message)
+
+      if (data.allSubmitted) {
+        // Both players have submitted, ready for judging
+        setPhase("results")
+      } else {
+        // Waiting for other player
+        alert('Prompt submitted! Waiting for opponent...')
+      }
+    } catch (error) {
+      console.error('Error submitting prompt:', error)
+      alert('Failed to submit prompt. Please try again.')
+    }
   }
 
-  const handleTest = () => {
-    console.log("[v0] Testing prompt")
-    // Navigate to testing playground
+  const handleTest = async () => {
+    if (!prompt.trim()) return
+
+    setIsTestingPrompt(true)
+    setIsGenerating(true)
+    setTestOutput("")
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate response')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (!line.trim() || line === 'data: [DONE]') continue
+
+            // Handle Server-Sent Events format: "data: {...}"
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.substring(6) // Remove "data: " prefix
+              try {
+                const parsed = JSON.parse(jsonStr)
+
+                // Handle text-delta events which contain the actual content
+                if (parsed.type === 'text-delta' && parsed.delta) {
+                  fullText += parsed.delta
+                  setTestOutput(fullText)
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error testing prompt:', error)
+      setTestOutput('Error: Failed to test prompt. Please try again.')
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (
@@ -75,8 +169,8 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                 {/* Timer */}
                 <div className="text-center">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-accent" />
-                    <span className="text-3xl font-bold font-mono text-accent">{formatTime(timeLeft)}</span>
+                    <Clock className="w-5 h-5" />
+                    <span className="text-3xl font-bold font-mono">{formatTime(timeLeft)}</span>
                   </div>
                   <Progress value={(timeLeft / 180) * 100} className="w-48 h-2" />
                 </div>
@@ -114,67 +208,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     <Brain className="w-3 h-3 mr-1" />
                     Creative
                   </Badge>
-                </div>
-              </Card>
-
-              {/* Tips card */}
-              <Card className="p-6 glass-effect border-accent/20">
-                <button
-                  onClick={() => setShowTips(!showTips)}
-                  className="flex items-center gap-2 mb-4 w-full text-left hover:text-accent transition-colors"
-                >
-                  <Lightbulb className="w-5 h-5 text-accent" />
-                  <h3 className="font-semibold">Prompt Tips</h3>
-                </button>
-                {showTips && (
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Be specific about the desired output format</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Include context and constraints</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Use examples to guide the AI</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Specify tone and style preferences</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Break complex tasks into steps</span>
-                    </li>
-                  </ul>
-                )}
-              </Card>
-
-              {/* Scoring criteria */}
-              <Card className="p-6 glass-effect border-success/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Trophy className="w-5 h-5 text-success" />
-                  <h3 className="font-semibold">Scoring</h3>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Clarity</span>
-                    <span className="font-semibold">30%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Specificity</span>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Output Quality</span>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Creativity</span>
-                    <span className="font-semibold">20%</span>
-                  </div>
                 </div>
               </Card>
             </div>
@@ -220,37 +253,48 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                   </Button>
                 </div>
               </Card>
-
-              {/* Live feedback */}
-              <Card className="p-6 glass-effect border-primary/20">
-                <h3 className="font-semibold mb-4">Real-time Analysis</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Clarity Score</span>
-                      <span className="font-semibold text-primary">{prompt.length > 50 ? "85%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 50 ? 85 : 0} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Specificity</span>
-                      <span className="font-semibold text-accent">{prompt.length > 100 ? "72%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 100 ? 72 : 0} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Structure</span>
-                      <span className="font-semibold text-success">{prompt.length > 150 ? "90%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 150 ? 90 : 0} className="h-2" />
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
         </div>
+
+        {/* Test Prompt Modal */}
+        {isTestingPrompt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden glass-effect border-primary/20">
+              <div className="p-6 border-b border-border/20 flex items-center justify-between">
+                <h3 className="text-xl font-semibold">Prompt Test Results</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTestingPrompt(false)}
+                  className="hover:bg-destructive/10"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">Your Prompt:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 text-sm font-mono">
+                    {prompt}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-2">AI Output:</h4>
+                  <div className="p-4 rounded-lg bg-secondary/30 min-h-[200px] text-foreground leading-relaxed">
+                    {isGenerating && !testOutput && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        Generating response...
+                      </div>
+                    )}
+                    {testOutput || (isGenerating ? "" : "Output will appear here...")}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </>
   )

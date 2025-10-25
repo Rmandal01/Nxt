@@ -14,20 +14,71 @@ export default function PlaygroundPage() {
   const [prompt, setPrompt] = useState("")
   const [output, setOutput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
-  const [model, setModel] = useState("gpt-4")
+  const [model, setModel] = useState("gemini-2.0-flash-exp")
   const [temperature, setTemperature] = useState("0.7")
 
   const handleGenerate = async () => {
-    setIsGenerating(true)
-    console.log("[v0] Generating with prompt:", prompt)
+    if (!prompt.trim()) return
 
-    // Simulate API call
-    setTimeout(() => {
-      setOutput(
-        "This is a sample AI-generated response based on your prompt. In production, this would be the actual AI output from your backend.",
-      )
+    setIsGenerating(true)
+    setOutput("")
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error Response:', errorText)
+        throw new Error(`API returned ${response.status}: ${errorText}`)
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value)
+          const lines = chunk.split('\n')
+
+          for (const line of lines) {
+            if (!line.trim() || line === 'data: [DONE]') continue
+
+            // Handle Server-Sent Events format: "data: {...}"
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.substring(6) // Remove "data: " prefix
+              try {
+                const parsed = JSON.parse(jsonStr)
+
+                // Handle text-delta events which contain the actual content
+                if (parsed.type === 'text-delta' && parsed.delta) {
+                  fullText += parsed.delta
+                  setOutput(fullText)
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error generating response:', error)
+      setOutput('Error: Failed to generate response. Please try again.')
+    } finally {
       setIsGenerating(false)
-    }, 2000)
+    }
   }
 
   const handleReset = () => {
@@ -103,6 +154,7 @@ export default function PlaygroundPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Latest)</SelectItem>
                         <SelectItem value="gpt-4">GPT-4</SelectItem>
                         <SelectItem value="gpt-3.5">GPT-3.5 Turbo</SelectItem>
                         <SelectItem value="claude">Claude 3</SelectItem>
