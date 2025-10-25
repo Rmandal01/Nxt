@@ -2,17 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  backgroundGradient, 
-  containerStyles, 
-  inputStyles, 
-  labelStyles, 
-  primaryButtonStyles, 
-  secondaryButtonStyles, 
-  errorStyles, 
-  titleStylesLarge, 
-  subtitleStyles, 
-  smallTextStyles 
+import { createClient } from '@/lib/supabase/client'
+import {
+  backgroundGradient,
+  containerStyles,
+  inputStyles,
+  labelStyles,
+  primaryButtonStyles,
+  secondaryButtonStyles,
+  errorStyles,
+  titleStylesLarge,
+  subtitleStyles,
+  smallTextStyles
 } from '@/lib/styles'
 
 export default function Home() {
@@ -21,30 +22,98 @@ export default function Home() {
   const [isCreating, setIsCreating] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState('')
-  const [showUsername, setShowUsername] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
 
   const generateRoomCode = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     if (!username.trim()) {
-      setShowUsername(true)
       setError('Please enter your name first')
       return
     }
 
-    const code = generateRoomCode()
-    localStorage.setItem('username', username)
-    router.push(`/room/${code}`)
+    setIsCreating(true)
+    setError('')
+
+    try {
+      // Generate unique room code
+      let code = generateRoomCode()
+      let isUnique = false
+
+      while (!isUnique) {
+        const { data: existing } = await supabase
+          .from('game_rooms')
+          .select('id')
+          .eq('room_code', code)
+          .maybeSingle()
+
+        if (!existing) {
+          isUnique = true
+        } else {
+          code = generateRoomCode()
+        }
+      }
+
+      // Create a temporary user ID (since we don't have auth)
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+      // Create profile with the display name
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          username: username.trim()
+        })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
+      }
+
+      // Create room
+      const { data: room, error: roomError } = await supabase
+        .from('game_rooms')
+        .insert({
+          room_code: code,
+          host_id: userId,
+          status: 'waiting'
+        })
+        .select()
+        .single()
+
+      if (roomError) throw roomError
+
+      // Add host as participant
+      const { error: participantError } = await supabase
+        .from('game_participants')
+        .insert({
+          room_id: room.id,
+          user_id: userId,
+          is_ready: false
+        })
+
+      if (participantError) throw participantError
+
+      // Store user info in localStorage
+      localStorage.setItem('userId', userId)
+      localStorage.setItem('username', username.trim())
+
+      router.push(`/room/${code}`)
+    } catch (err: any) {
+      console.error('Error creating room:', err)
+      setError(err.message || 'Failed to create room')
+    } finally {
+      setIsCreating(false)
+    }
   }
 
-  const handleJoinRoom = (e: React.FormEvent) => {
+  const handleJoinRoom = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!username.trim()) {
-      setShowUsername(true)
       setError('Please enter your name first')
       return
     }
@@ -54,8 +123,86 @@ export default function Home() {
       return
     }
 
-    localStorage.setItem('username', username)
-    router.push(`/room/${roomCode.toUpperCase()}`)
+    setIsJoining(true)
+    setError('')
+
+    try {
+      // Find room
+      const { data: room, error: roomError } = await supabase
+        .from('game_rooms')
+        .select('*')
+        .eq('room_code', roomCode.toUpperCase())
+        .eq('status', 'waiting')
+        .maybeSingle()
+
+      if (roomError) {
+        console.error('Room query error:', roomError)
+        setError('Error finding room')
+        setIsJoining(false)
+        return
+      }
+
+      if (!room) {
+        setError('Room not found or already started')
+        setIsJoining(false)
+        return
+      }
+
+      // Check if room is full
+      const { data: participants, error: participantsError } = await supabase
+        .from('game_participants')
+        .select('*')
+        .eq('room_id', room.id)
+
+      if (participantsError) {
+        console.error('Participants query error:', participantsError)
+        throw participantsError
+      }
+
+      if (participants && participants.length >= room.max_players) {
+        setError('Room is full')
+        setIsJoining(false)
+        return
+      }
+
+      // Create a temporary user ID
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
+      // Create profile with the display name
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          username: username.trim()
+        })
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError)
+        throw profileError
+      }
+
+      // Add user as participant
+      const { error: joinError } = await supabase
+        .from('game_participants')
+        .insert({
+          room_id: room.id,
+          user_id: userId,
+          is_ready: false
+        })
+
+      if (joinError) throw joinError
+
+      // Store user info in localStorage
+      localStorage.setItem('userId', userId)
+      localStorage.setItem('username', username.trim())
+
+      router.push(`/room/${roomCode.toUpperCase()}`)
+    } catch (err: any) {
+      console.error('Error joining room:', err)
+      setError(err.message || 'Failed to join room')
+    } finally {
+      setIsJoining(false)
+    }
   }
 
   return (
@@ -157,7 +304,7 @@ export default function Home() {
           {/* Footer */}
           <div className="pt-4 border-t border-gray-200">
             <p className={smallTextStyles}>
-              Compete against your friends to create the best AI prompts
+              Real-time multiplayer powered by Supabase
             </p>
           </div>
         </div>
