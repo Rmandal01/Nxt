@@ -36,14 +36,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validate prompt length (optional - adjust as needed)
-    if (prompt.length > 1000) {
-      return NextResponse.json(
-        { error: 'Prompt is too long (max 1000 characters)' },
-        { status: 400 }
-      )
-    }
-
     // Verify room exists and is in playing status
     const { data: room, error: roomError } = await supabase
       .from('game_rooms')

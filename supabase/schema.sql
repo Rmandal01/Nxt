@@ -13,8 +13,6 @@ CREATE TABLE game_rooms (
   room_code TEXT UNIQUE NOT NULL,
   host_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'waiting', -- waiting, countdown, playing, finished
-  max_players INTEGER DEFAULT 2,
-  countdown_duration INTEGER DEFAULT 60, -- seconds for prompt submission
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   started_at TIMESTAMP WITH TIME ZONE,
   finished_at TIMESTAMP WITH TIME ZONE
@@ -37,10 +35,6 @@ CREATE TABLE game_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID REFERENCES game_rooms(id) ON DELETE CASCADE,
   winner_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
-  player1_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
-  player2_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
-  player1_score INTEGER,
-  player2_score INTEGER,
   judge_reasoning TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

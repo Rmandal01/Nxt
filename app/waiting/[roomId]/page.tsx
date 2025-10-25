@@ -39,6 +39,8 @@ export default function WaitingRoomPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setCurrentUserId(user.id)
+      } else {
+        router.push('/') // bruh why are you even here
       }
     }
 
@@ -157,8 +159,15 @@ export default function WaitingRoomPage() {
   useEffect(() => {
     if (allPlayersReady) {
       // Auto-start game when all players are ready
-      setTimeout(() => {
-        console.log("[v0] All players ready, starting game...")
+      setTimeout(async () => {
+        // update status in db to playing
+        const supabase = createClient();
+        const { error } = await supabase.from('game_rooms').update({ status: 'playing' }).eq('id', roomId);
+        
+        if (error) {
+          console.error('Error updating room status:', error);
+          return;
+        }
         router.push(`/battle/${roomId}`)
       }, 2000)
     }
@@ -301,9 +310,9 @@ export default function WaitingRoomPage() {
               </Button>
 
               {allPlayersReady && (
-                <Card className="p-4 bg-gradient-to-r from-success/20 to-primary/20 border-success/30 animate-pulse-glow">
+                <Card className="p-4 bg-gradient-to-r from-success/20 to-primary/20 border-success/30">
                   <p className="text-center font-medium text-success">
-                    All players ready! Starting battle in a moment...
+                    All players ready, starting!
                   </p>
                 </Card>
               )}
