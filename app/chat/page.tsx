@@ -66,7 +66,7 @@ export default function Chat() {
     e.preventDefault();
     sendMessage({ text: input });
     setInput('');
-    
+
     if (messagesRef.current) {
       setAtBottom(true); // Just force it
     }
@@ -104,7 +104,7 @@ export default function Chat() {
                 if (part.type === "text") {
                   if (message.role === 'user') {
                     return (
-                      <div 
+                      <div
                         key={messageKey}
                         className="py-3 flex justify-end"
                       >
