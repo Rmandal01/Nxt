@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+<<<<<<< HEAD
 import { 
   backgroundGradient, 
   containerStylesSmall, 
@@ -22,51 +23,214 @@ import {
   infoStyles,
   formFieldStyles
 } from '@/lib/styles'
+=======
+import { createClient } from '@/lib/supabase/client'
+import type { GameRoom } from '@/lib/types/database.types'
+
+interface Participant {
+  id: string
+  user_id: string
+  is_ready: boolean
+  profiles?: {
+    username: string
+  }
+}
+>>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
 
 export default function RoomPage() {
   const params = useParams()
   const router = useRouter()
   const roomCode = params?.roomCode as string
-  const [username, setUsername] = useState('')
-  const [players, setPlayers] = useState<string[]>([])
+  const [room, setRoom] = useState<GameRoom | null>(null)
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [gameStarted, setGameStarted] = useState(false)
   const [prompt, setPrompt] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const supabase = createClient()
 
   useEffect(() => {
-    const name = localStorage.getItem('username')
-    if (!name) {
+    const userId = localStorage.getItem('userId')
+    if (!userId) {
       router.push('/')
       return
     }
-    setUsername(name)
-    setPlayers([name]) // For now, just add yourself
-  }, [router])
+    setCurrentUserId(userId)
+    initializeRoom(userId)
+  }, [router, roomCode])
+
+  useEffect(() => {
+    if (!room) return
+
+    // Subscribe to room changes
+    const roomChannel = supabase
+      .channel(`room-${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'game_rooms',
+          filter: `id=eq.${room.id}`
+        },
+        (payload) => {
+          const updatedRoom = payload.new as GameRoom
+          setRoom(updatedRoom)
+          if (updatedRoom.status === 'countdown' || updatedRoom.status === 'playing') {
+            setGameStarted(true)
+          }
+        }
+      )
+      .subscribe()
+
+    // Subscribe to participant changes
+    const participantsChannel = supabase
+      .channel(`participants-${room.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_participants',
+          filter: `room_id=eq.${room.id}`
+        },
+        async () => {
+          await fetchParticipants(room.id)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(roomChannel)
+      supabase.removeChannel(participantsChannel)
+    }
+  }, [room?.id, supabase])
+
+  const initializeRoom = async (userId: string) => {
+    setLoading(true)
+    setError('')
+
+    try {
+      // Fetch room
+      const { data: roomData, error: roomError } = await supabase
+        .from('game_rooms')
+        .select('*')
+        .eq('room_code', roomCode.toUpperCase())
+        .single()
+
+      if (roomError || !roomData) {
+        setError('Room not found')
+        setTimeout(() => router.push('/'), 2000)
+        return
+      }
+
+      setRoom(roomData)
+
+      // Fetch participants
+      await fetchParticipants(roomData.id)
+
+      // Check game status
+      if (roomData.status === 'countdown' || roomData.status === 'playing') {
+        setGameStarted(true)
+      }
+
+      setLoading(false)
+    } catch (err) {
+      console.error('Error initializing room:', err)
+      setError('Failed to load room')
+      setLoading(false)
+    }
+  }
+
+  const fetchParticipants = async (roomId: string) => {
+    const { data, error } = await supabase
+      .from('game_participants')
+      .select(`
+        id,
+        user_id,
+        is_ready,
+        profiles (username)
+      `)
+      .eq('room_id', roomId)
+
+    if (!error && data) {
+      setParticipants(data as any)
+    }
+  }
+
+  const handleReady = async () => {
+    if (!room || !currentUserId) return
+
+    const newReadyStatus = !isReady
+
+    try {
+      const { error } = await supabase
+        .from('game_participants')
+        .update({ is_ready: newReadyStatus })
+        .eq('room_id', room.id)
+        .eq('user_id', currentUserId)
+
+      if (!error) {
+        setIsReady(newReadyStatus)
+      }
+    } catch (err) {
+      console.error('Error updating ready status:', err)
+    }
+  }
+
+  const handleStartGame = async () => {
+    if (!room || !currentUserId) return
+
+    // Check if all players are ready
+    const allReady = participants.every(p => p.is_ready)
+    const roomFull = participants.length >= room.max_players
+
+    if (!allReady || !roomFull) return
+
+    try {
+      await supabase
+        .from('game_rooms')
+        .update({
+          status: 'playing',
+          started_at: new Date().toISOString()
+        })
+        .eq('id', room.id)
+    } catch (err) {
+      console.error('Error starting game:', err)
+    }
+  }
+
+  const handleSubmitPrompt = async () => {
+    if (!prompt.trim() || !room || !currentUserId) return
+
+    try {
+      const { error } = await supabase
+        .from('game_participants')
+        .update({
+          prompt: prompt.trim(),
+          submitted_at: new Date().toISOString()
+        })
+        .eq('room_id', room.id)
+        .eq('user_id', currentUserId)
+
+      if (!error) {
+        setSubmitted(true)
+      }
+    } catch (err) {
+      console.error('Error submitting prompt:', err)
+    }
+  }
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomCode)
     alert('Room code copied!')
   }
 
-  const handleReady = () => {
-    setIsReady(!isReady)
-  }
-
-  const handleStartGame = () => {
-    if (isReady) {
-      setGameStarted(true)
-    }
-  }
-
-  const handleSubmitPrompt = () => {
-    if (prompt.trim()) {
-      setSubmitted(true)
-      alert(`Prompt submitted: "${prompt}"\n\nIn a full multiplayer game, this would be sent to the AI judge!`)
-    }
-  }
-
-  if (!username) {
+  if (loading) {
     return (
       <div className={backgroundGradient}>
         <div className="text-white text-2xl">Loading...</div>
@@ -74,8 +238,22 @@ export default function RoomPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 text-center">
+          <p className="text-red-600 font-semibold mb-4">{error}</p>
+          <p className="text-gray-600 text-sm">Redirecting to home...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!gameStarted) {
     // Waiting Room
+    const allReady = participants.every(p => p.is_ready)
+    const roomFull = participants.length >= (room?.max_players || 2)
+
     return (
       <div className={backgroundGradient}>
         <div className="w-full max-w-2xl">
@@ -99,30 +277,52 @@ export default function RoomPage() {
             </div>
 
             <div className="space-y-3">
+<<<<<<< HEAD
               <h2 className="text-lg font-semibold text-gray-700">Players</h2>
               {players.map((player, index) => (
                 <div key={index} className={playerCardStyles}>
                   <div className="flex items-center gap-3">
                     <div className={avatarStyles}>
                       {player[0].toUpperCase()}
+=======
+              <h2 className="text-lg font-semibold text-gray-700">Players ({participants.length}/{room?.max_players || 2})</h2>
+              {participants.map((participant) => (
+                <div key={participant.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                      {participant.profiles?.username?.[0]?.toUpperCase() || 'U'}
+>>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{player}</p>
-                      <p className="text-xs text-purple-600">You</p>
+                      <p className="font-semibold text-gray-900">{participant.profiles?.username || 'Unknown'}</p>
+                      {participant.user_id === currentUserId && (
+                        <p className="text-xs text-purple-600">You</p>
+                      )}
                     </div>
                   </div>
+<<<<<<< HEAD
                   <span className={statusBadgeStyles(isReady)}>
                     {isReady ? 'Ready' : 'Not Ready'}
+=======
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    participant.is_ready
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {participant.is_ready ? 'Ready' : 'Not Ready'}
+>>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                   </span>
                 </div>
               ))}
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-300" />
-                  <p className="text-gray-400">Waiting for opponent...</p>
+              {participants.length < (room?.max_players || 2) && (
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gray-300" />
+                    <p className="text-gray-400">Waiting for opponent...</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-3 pt-4">
@@ -137,6 +337,7 @@ export default function RoomPage() {
                 {isReady ? 'Not Ready' : 'Ready'}
               </button>
 
+<<<<<<< HEAD
               <button
                 onClick={handleStartGame}
                 disabled={!isReady}
@@ -148,6 +349,23 @@ export default function RoomPage() {
               <p className={smallTextStyles}>
                 Note: This is a demo. Full multiplayer requires Supabase setup with authentication.
               </p>
+=======
+              {room?.host_id === currentUserId && (
+                <button
+                  onClick={handleStartGame}
+                  disabled={!allReady || !roomFull}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {allReady && roomFull ? 'Start Game' : 'Waiting for all players to be ready...'}
+                </button>
+              )}
+
+              {allReady && roomFull && room?.host_id !== currentUserId && (
+                <div className="text-center text-green-600 font-semibold animate-pulse">
+                  Waiting for host to start the game...
+                </div>
+              )}
+>>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
             </div>
           </div>
         </div>
@@ -209,17 +427,16 @@ export default function RoomPage() {
                 </div>
               </div>
 
+<<<<<<< HEAD
               <div className={infoStyles}>
                 <p className="text-blue-700 font-semibold mb-2">Demo Mode</p>
+=======
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <p className="text-blue-700 font-semibold mb-2">Waiting for Opponent</p>
+>>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                 <p className="text-sm text-blue-600">
-                  In full multiplayer mode with Supabase authentication:
+                  Once both players submit, the AI will judge the prompts!
                 </p>
-                <ul className="text-xs text-blue-600 mt-2 space-y-1">
-                  <li>✓ Both players submit prompts</li>
-                  <li>✓ Gemini AI judges creativity and quality</li>
-                  <li>✓ Winner is announced with scores</li>
-                  <li>✓ Real-time updates across all players</li>
-                </ul>
               </div>
 
               <button
