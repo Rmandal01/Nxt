@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
 import { streamText, UIMessage, convertToModelMessages } from "ai";
 
 export async function POST(request: Request) {
@@ -10,8 +10,16 @@ export async function POST(request: Request) {
 
   // Returns a StreamTextResult
   const result = streamText({
-    model: anthropic("claude-sonnet-4-0"),
-    system: "You are an AI assistant that helps with tasks and answers questions.",
+    model: google("gemini-1.5-flash"),
+    system: `You are a prompt improvement AI assistant. Your role is to help users craft better, more creative, and effective prompts.
+
+When a user shares their prompt with you:
+1. Analyze the prompt for clarity, creativity, and effectiveness
+2. Suggest specific improvements
+3. Provide an enhanced version of the prompt
+4. Explain why your improvements make the prompt better
+
+Be constructive, creative, and help users understand what makes a great prompt.`,
     messages: convertToModelMessages(messages), // Convert UIMessage[] to ModelMessage[] (this one doesn't include metadata like timestamps, it's just the messages)
   });
 
