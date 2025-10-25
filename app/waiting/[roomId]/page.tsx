@@ -310,7 +310,7 @@ export default function WaitingRoomPage() {
               </Button>
 
               {allPlayersReady && (
-                <Card className="p-4 bg-gradient-to-r from-success/20 to-primary/20 border-success/30 animate-pulse-glow">
+                <Card className="p-4 bg-gradient-to-r from-success/20 to-primary/20 border-success/30">
                   <p className="text-center font-medium text-success">
                     All players ready, starting!
                   </p>
