@@ -417,139 +417,102 @@ export default function RoomPage() {
     setChatInput('')
   }
 
-  const handleSubmitFinalPrompt = async () => {
-    if (!finalPrompt.trim()) {
-      alert('Please set a final prompt first by clicking "Use This Prompt"')
-      return
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Auto-focus on typing
+    if (e.key.length === 1 && document.activeElement?.tagName !== 'INPUT') {
+      const input = document.querySelector('input[type="text"]') as HTMLInputElement
+      if (input) input.focus()
     }
-
-    setPrompt(finalPrompt)
-    await handleSubmitPrompt()
   }
 
-  // Battle Arena with AI Chat
+  // Battle Arena - Test your prompt with AI
   return (
     <div className={backgroundGradient}>
-      <div className="w-full max-w-5xl">
-        <div className={containerStylesSmall}>
-          <div className="text-center space-y-2 mb-4">
-            <h1 className={titleStyles}>
-              Battle Arena
-            </h1>
-            <p className={subtitleStyles}>Chat with AI to craft the perfect prompt!</p>
+      <div className="w-full max-w-3xl">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4">
+            <h1 className="text-xl font-semibold">Battle Arena</h1>
+            <p className="text-sm text-purple-100">Test your prompt and see AI results in real-time</p>
           </div>
 
           {!submitted ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Chat Interface */}
-              <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4">
-                  <h2 className="font-semibold">AI Prompt Coach</h2>
-                  <p className="text-xs text-purple-100">Get real-time feedback to improve your prompt</p>
-                </div>
-
-                {/* Messages */}
-                <div
-                  ref={messagesRef}
-                  className="flex-1 overflow-y-auto p-4 space-y-3"
-                >
-                  {messages.length === 0 && (
-                    <div className="text-center text-gray-500 mt-8">
-                      <p className="text-sm">Start by sending your prompt idea!</p>
-                      <p className="text-xs mt-2">The AI will help you improve it.</p>
-                    </div>
-                  )}
-
-                  {messages.map(message => (
-                    <div key={message.id}>
-                      {message.parts.map((part, i) => {
-                        if (part.type === "text") {
-                          if (message.role === 'user') {
-                            return (
-                              <div
-                                key={i}
-                                className="flex justify-end"
-                              >
-                                <div className="rounded-lg bg-blue-600 text-white p-3 max-w-[80%]">
-                                  <MarkdownComponent content={part.text} />
-                                </div>
-                              </div>
-                            )
-                          } else {
-                            return (
-                              <div key={i} className="flex justify-start">
-                                <div className="rounded-lg bg-gray-100 p-3 max-w-[80%]">
-                                  <MarkdownComponent content={part.text} />
-                                </div>
-                              </div>
-                            )
-                          }
-                        }
-                        return null
-                      })}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Chat Input */}
-                <form onSubmit={handleSendMessage} className="p-4 border-t">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask AI to improve your prompt..."
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!chatInput.trim()}
-                      className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      Send
-                    </button>
+            <div className="flex flex-col h-[calc(100vh-200px)]" onKeyDown={handleKeyDown} tabIndex={0}>
+              {/* Chat Messages */}
+              <div
+                ref={messagesRef}
+                className="flex-1 overflow-y-auto p-6 bg-zinc-900 text-white"
+              >
+                {messages.length === 0 && (
+                  <div className="text-center text-gray-400 mt-16">
+                    <p className="text-lg mb-2">Type your prompt below to test it with AI</p>
+                    <p className="text-sm">See real-time results and refine your prompt</p>
                   </div>
-                </form>
+                )}
+
+                {messages.map(message => (
+                  <div key={message.id} className="py-3">
+                    {message.parts.map((part, i) => {
+                      if (part.type === "text") {
+                        if (message.role === 'user') {
+                          return (
+                            <div key={i} className="flex justify-end mb-4">
+                              <div className="rounded-full bg-blue-950 p-3 inline-block max-w-[80%]">
+                                <MarkdownComponent content={part.text} />
+                              </div>
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <div key={i} className="mb-4 max-w-[90%]">
+                              <MarkdownComponent content={part.text} />
+                            </div>
+                          )
+                        }
+                      }
+                      return null
+                    })}
+                  </div>
+                ))}
               </div>
 
-              {/* Final Prompt Panel */}
-              <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white p-4">
-                  <h2 className="font-semibold">Your Final Prompt</h2>
-                  <p className="text-xs text-green-100">Refine and submit when ready</p>
-                </div>
+              {/* Input Area */}
+              <form onSubmit={handleSendMessage} className="p-4 bg-white border-t">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your prompt to test it..."
+                  className="w-full p-3 mb-3 border border-zinc-300 outline-none rounded shadow-sm focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim()}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Test Prompt
+                </button>
+              </form>
 
-                <div className="flex-1 p-4 flex flex-col gap-4">
-                  <div className="flex-1">
-                    <label className={labelStyles}>
-                      Final Prompt to Submit
-                    </label>
-                    <textarea
-                      value={finalPrompt}
-                      onChange={(e) => setFinalPrompt(e.target.value)}
-                      placeholder="Copy the AI's improved version here, or write your own..."
-                      className="w-full h-[calc(100%-2rem)] p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-right text-sm text-gray-500">
-                      {finalPrompt.length} characters
-                    </div>
-
-                    <button
-                      onClick={handleSubmitFinalPrompt}
-                      disabled={!finalPrompt.trim()}
-                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    >
-                      Submit Final Prompt
-                    </button>
-
-                    <p className="text-xs text-gray-500 text-center">
-                      Once you submit, you cannot change it!
-                    </p>
-                  </div>
-                </div>
+              {/* Submit Final Prompt */}
+              <div className="p-4 bg-gray-50 border-t">
+                <p className="text-sm text-gray-600 mb-2">When you're satisfied with your prompt:</p>
+                <button
+                  onClick={async () => {
+                    if (messages.length === 0) {
+                      alert('Please test your prompt first!')
+                      return
+                    }
+                    // Get the last user message as the final prompt
+                    const lastUserMessage = messages.filter(m => m.role === 'user').pop()
+                    if (lastUserMessage && lastUserMessage.parts[0]?.type === 'text') {
+                      setPrompt(lastUserMessage.parts[0].text)
+                      await handleSubmitPrompt()
+                    }
+                  }}
+                  className="w-full bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition-all"
+                >
+                  Submit Final Prompt
+                </button>
               </div>
             </div>
           ) : (

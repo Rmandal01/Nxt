@@ -11,15 +11,7 @@ export async function POST(request: Request) {
   // Returns a StreamTextResult
   const result = streamText({
     model: google("gemini-1.5-flash"),
-    system: `You are a prompt improvement AI assistant. Your role is to help users craft better, more creative, and effective prompts.
-
-When a user shares their prompt with you:
-1. Analyze the prompt for clarity, creativity, and effectiveness
-2. Suggest specific improvements
-3. Provide an enhanced version of the prompt
-4. Explain why your improvements make the prompt better
-
-Be constructive, creative, and help users understand what makes a great prompt.`,
+    system: `You are a helpful AI assistant. Execute the user's prompts and provide helpful, creative, and engaging responses. Just respond naturally to whatever the user asks - don't give feedback on the prompt itself, just answer it.`,
     messages: convertToModelMessages(messages), // Convert UIMessage[] to ModelMessage[] (this one doesn't include metadata like timestamps, it's just the messages)
   });
 
