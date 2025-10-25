@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, FormEvent } from "react"
+import { useState, useEffect, useRef, FormEvent, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -50,8 +50,8 @@ function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipa
       )}
       {isJudging && (
         <>
-          <p>Judging in progress...</p>
-          <p>Please wait while our AI evaluates the prompts.</p>
+          <p className="text-2xl font-bold">Judging in progress...</p>
+          <p className="text-lg">Please wait while our AI evaluates your prompts.</p>
         </>
       )}
     </div>
@@ -99,11 +99,61 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     fetchParticipant();
   }, [roomId]);
 
-  // Set up realtime subscription to listen for participant changes
+  // Function to check if all participants have submitted and trigger judging
+  const checkAllParticipantsSubmitted = useCallback(async () => {
+    const supabase = createClient();
+    const { data: participants, error } = await supabase
+      .from('game_participants')
+      .select('*')
+      .eq('room_id', roomId);
+      
+    if (!error && participants) {
+      const allSubmitted = participants.every(p => p.prompt !== null);
+      setAllParticipantsSubmitted(allSubmitted);
+      
+      if (allSubmitted && !isJudging) {
+        setIsJudging(true);
+
+        /*
+        // Trigger judging process
+        try {
+          const response = await fetch('/api/judge', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ roomId }),
+          });
+          
+          if (response.ok) {
+            // Small delay to ensure the judging process completes
+            setTimeout(() => {
+              router.push(`/results/${roomId}`);
+            }, 2000);
+          } else {
+            const errorData = await response.json();
+            console.error('Error triggering judging:', errorData);
+            setIsJudging(false); // Reset judging state on error
+          }
+        } catch (error) {
+          console.error('Error triggering judging:', error);
+          setIsJudging(false); // Reset judging state on error
+        }
+        */
+      }
+    }
+  }, [roomId, isJudging, router]);
+
+  // Set up realtime subscription and initial check
   useEffect(() => {
     const supabase = createClient();
-    
-    const channel = supabase
+    let channel: any;
+
+    // Initial check
+    checkAllParticipantsSubmitted();
+
+    // Set up realtime subscription to listen for participant changes
+    channel = supabase
       .channel(`room-${roomId}`)
       .on(
         'postgres_changes',
@@ -113,47 +163,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
           table: 'game_participants',
           filter: `room_id=eq.${roomId}`,
         },
-        async (payload) => {
-          console.log('Participant change detected:', payload);
-          
-          // Check if all participants have submitted
-          const { data: participants, error } = await supabase
-            .from('game_participants')
-            .select('*')
-            .eq('room_id', roomId);
-            
-          if (!error && participants) {
-            const allSubmitted = participants.every(p => p.prompt !== null);
-            setAllParticipantsSubmitted(allSubmitted);
-            
-            if (allSubmitted && !isJudging) {
-              setIsJudging(true);
-              // Trigger judging process
-              try {
-                const response = await fetch('/api/judge', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ roomId }),
-                });
-                
-                if (response.ok) {
-                  // Small delay to ensure the judging process completes
-                  setTimeout(() => {
-                    router.push(`/results/${roomId}`);
-                  }, 2000);
-                } else {
-                  const errorData = await response.json();
-                  console.error('Error triggering judging:', errorData);
-                  setIsJudging(false); // Reset judging state on error
-                }
-              } catch (error) {
-                console.error('Error triggering judging:', error);
-                setIsJudging(false); // Reset judging state on error
-              }
-            }
-          }
+        () => {
+          // Refetch participants when changes occur
+          checkAllParticipantsSubmitted();
         }
       )
       .subscribe();
@@ -161,18 +173,11 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     setRealtimeChannel(channel);
 
     return () => {
-      channel.unsubscribe();
-    };
-  }, [roomId, isJudging, router]);
-
-  // Cleanup realtime channel on unmount
-  useEffect(() => {
-    return () => {
-      if (realtimeChannel) {
-        realtimeChannel.unsubscribe();
+      if (channel) {
+        supabase.removeChannel(channel);
       }
     };
-  }, [realtimeChannel]);
+  }, [roomId, checkAllParticipantsSubmitted]);
 
   /*
   useEffect(() => {
