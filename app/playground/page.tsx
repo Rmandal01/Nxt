@@ -35,7 +35,9 @@ export default function PlaygroundPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to generate response')
+        const errorText = await response.text()
+        console.error('API Error Response:', errorText)
+        throw new Error(`API returned ${response.status}: ${errorText}`)
       }
 
       const reader = response.body?.getReader()
