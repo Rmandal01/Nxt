@@ -131,8 +131,8 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                 {/* Timer */}
                 <div className="text-center">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-accent" />
-                    <span className="text-3xl font-bold font-mono text-accent">{formatTime(timeLeft)}</span>
+                    <Clock className="w-5 h-5" />
+                    <span className="text-3xl font-bold font-mono">{formatTime(timeLeft)}</span>
                   </div>
                   <Progress value={(timeLeft / 180) * 100} className="w-48 h-2" />
                 </div>
@@ -170,67 +170,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     <Brain className="w-3 h-3 mr-1" />
                     Creative
                   </Badge>
-                </div>
-              </Card>
-
-              {/* Tips card */}
-              <Card className="p-6 glass-effect border-accent/20">
-                <button
-                  onClick={() => setShowTips(!showTips)}
-                  className="flex items-center gap-2 mb-4 w-full text-left hover:text-accent transition-colors"
-                >
-                  <Lightbulb className="w-5 h-5 text-accent" />
-                  <h3 className="font-semibold">Prompt Tips</h3>
-                </button>
-                {showTips && (
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Be specific about the desired output format</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Include context and constraints</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Use examples to guide the AI</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Specify tone and style preferences</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="text-accent">•</span>
-                      <span>Break complex tasks into steps</span>
-                    </li>
-                  </ul>
-                )}
-              </Card>
-
-              {/* Scoring criteria */}
-              <Card className="p-6 glass-effect border-success/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Trophy className="w-5 h-5 text-success" />
-                  <h3 className="font-semibold">Scoring</h3>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Clarity</span>
-                    <span className="font-semibold">30%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Specificity</span>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Output Quality</span>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Creativity</span>
-                    <span className="font-semibold">20%</span>
-                  </div>
                 </div>
               </Card>
             </div>
@@ -274,34 +213,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     <Send className="w-5 h-5 mr-2" />
                     Submit Final
                   </Button>
-                </div>
-              </Card>
-
-              {/* Live feedback */}
-              <Card className="p-6 glass-effect border-primary/20">
-                <h3 className="font-semibold mb-4">Real-time Analysis</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Clarity Score</span>
-                      <span className="font-semibold text-primary">{prompt.length > 50 ? "85%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 50 ? 85 : 0} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Specificity</span>
-                      <span className="font-semibold text-accent">{prompt.length > 100 ? "72%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 100 ? 72 : 0} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Structure</span>
-                      <span className="font-semibold text-success">{prompt.length > 150 ? "90%" : "—"}</span>
-                    </div>
-                    <Progress value={prompt.length > 150 ? 90 : 0} className="h-2" />
-                  </div>
                 </div>
               </Card>
             </div>
