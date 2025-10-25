@@ -195,7 +195,6 @@ export default function WaitingRoomPage() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient">
                 Waiting Room
               </h1>
-              <p className="text-muted-foreground">Get ready for an epic prompt battle!</p>
             </div>
 
             {/* Room Code Card */}
@@ -204,20 +203,19 @@ export default function WaitingRoomPage() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">Room Code</p>
                   <div className="flex items-center justify-center gap-3">
-                    <div className="text-5xl font-bold tracking-wider font-mono bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    <div className="text-5xl font-bold tracking-wider font-mono text-gray-300">
                       {loading ? "Loading..." : roomCode}
                     </div>
                     <Button
                       onClick={handleCopyCode}
                       size="sm"
                       disabled={!roomCode}
-                      className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Share this code with your opponent to join</p>
+                <p className="text-xs text-muted-foreground">Share this code with your opponents to join</p>
               </div>
             </Card>
 
@@ -227,7 +225,7 @@ export default function WaitingRoomPage() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Users className="w-5 h-5 text-primary" />
-                    Players ({players.filter((p) => p.name !== "Waiting...").length}/2)
+                    Players ({players.filter((p) => p.name !== "Waiting...").length})
                   </h2>
                 </div>
 
@@ -314,30 +312,6 @@ export default function WaitingRoomPage() {
                 </Card>
               )}
             </div>
-
-            {/* Tips Card */}
-            <Card className="p-6 glass-effect border-accent/20 animate-slide-up" style={{ animationDelay: "0.4s" }}>
-              <div className="space-y-3">
-                <h3 className="font-semibold flex items-center gap-2 text-accent">
-                  <Sparkles className="w-4 h-4" />
-                  Pro Tips
-                </h3>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent mt-0.5">•</span>
-                    <span>Be specific and clear in your prompts for better AI responses</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent mt-0.5">•</span>
-                    <span>Use the testing area to refine your prompt before submitting</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent mt-0.5">•</span>
-                    <span>Consider context, tone, and desired output format in your prompts</span>
-                  </li>
-                </ul>
-              </div>
-            </Card>
           </div>
         </div>
       </div>
