@@ -60,15 +60,12 @@ export default function Home() {
       // Create a temporary user ID (since we don't have auth)
       const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
-      // Make username unique by appending a random suffix
-      const uniqueUsername = `${username.trim()}_${Math.random().toString(36).substring(2, 7)}`
-
-      // Create profile
+      // Create profile with the display name
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
-          username: uniqueUsername
+          username: username.trim()
         })
 
       if (profileError) {
@@ -171,15 +168,12 @@ export default function Home() {
       // Create a temporary user ID
       const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`
 
-      // Make username unique by appending a random suffix
-      const uniqueUsername = `${username.trim()}_${Math.random().toString(36).substring(2, 7)}`
-
-      // Create profile
+      // Create profile with the display name
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
-          username: uniqueUsername
+          username: username.trim()
         })
 
       if (profileError) {
