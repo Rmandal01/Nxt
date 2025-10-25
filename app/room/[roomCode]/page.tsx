@@ -59,6 +59,8 @@ export default function RoomPage() {
   useEffect(() => {
     if (!room) return
 
+    console.log('Setting up real-time subscriptions for room:', room.id)
+
     // Subscribe to room changes
     const roomChannel = supabase
       .channel(`room-${room.id}`)
@@ -71,6 +73,7 @@ export default function RoomPage() {
           filter: `id=eq.${room.id}`
         },
         (payload) => {
+          console.log('Room update received:', payload)
           const updatedRoom = payload.new as GameRoom
           setRoom(updatedRoom)
           if (updatedRoom.status === 'countdown' || updatedRoom.status === 'playing') {
@@ -78,7 +81,9 @@ export default function RoomPage() {
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Room channel status:', status)
+      })
 
     // Subscribe to participant changes
     const participantsChannel = supabase
@@ -91,17 +96,24 @@ export default function RoomPage() {
           table: 'game_participants',
           filter: `room_id=eq.${room.id}`
         },
-        async () => {
+        async (payload) => {
+          console.log('Participant change received:', payload)
           await fetchParticipants(room.id)
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Participants channel status:', status)
+      })
+
+    // Initial fetch
+    fetchParticipants(room.id)
 
     return () => {
+      console.log('Cleaning up subscriptions')
       supabase.removeChannel(roomChannel)
       supabase.removeChannel(participantsChannel)
     }
-  }, [room?.id, supabase])
+  }, [room?.id])
 
   const initializeRoom = async (userId: string) => {
     setLoading(true)
@@ -140,6 +152,7 @@ export default function RoomPage() {
   }
 
   const fetchParticipants = async (roomId: string) => {
+    console.log('Fetching participants for room:', roomId)
     const { data, error } = await supabase
       .from('game_participants')
       .select(`
@@ -150,8 +163,20 @@ export default function RoomPage() {
       `)
       .eq('room_id', roomId)
 
-    if (!error && data) {
+    if (error) {
+      console.error('Error fetching participants:', error)
+      return
+    }
+
+    if (data) {
+      console.log('Participants fetched:', data)
       setParticipants(data as any)
+
+      // Update local ready state based on current user
+      const currentParticipant = data.find(p => p.user_id === currentUserId)
+      if (currentParticipant) {
+        setIsReady(currentParticipant.is_ready)
+      }
     }
   }
 
@@ -159,17 +184,26 @@ export default function RoomPage() {
     if (!room || !currentUserId) return
 
     const newReadyStatus = !isReady
+    console.log('Updating ready status to:', newReadyStatus, 'for user:', currentUserId)
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('game_participants')
         .update({ is_ready: newReadyStatus })
         .eq('room_id', room.id)
         .eq('user_id', currentUserId)
+        .select()
 
-      if (!error) {
-        setIsReady(newReadyStatus)
+      if (error) {
+        console.error('Error updating ready status:', error)
+        return
       }
+
+      console.log('Ready status updated successfully:', data)
+      setIsReady(newReadyStatus)
+
+      // Manually refetch to ensure UI is in sync
+      await fetchParticipants(room.id)
     } catch (err) {
       console.error('Error updating ready status:', err)
     }
