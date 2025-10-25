@@ -180,13 +180,7 @@ export default function HomePage() {
     <>
       <Navigation />
 
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20 animate-gradient" />
-
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
-
+      <div>
         <div className="relative z-10 container mx-auto px-4 py-12">
           <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
             {/* Left side - Hero content */}
@@ -216,7 +210,7 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground">Compete head-to-head with other players</p>
                 </Card>
                 <Card className="p-4 glass-effect border-accent/20 hover:border-accent/40 transition-colors">
-                  <Code2 className="w-8 h-8 text-accent mb-2" />
+                  <Code2 className="w-8 h-8 text-primary mb-2" />
                   <h3 className="font-semibold mb-1">Test Playground</h3>
                   <p className="text-sm text-muted-foreground">Practice before you submit</p>
                 </Card>
