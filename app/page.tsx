@@ -2,6 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { 
+  backgroundGradient, 
+  containerStyles, 
+  inputStyles, 
+  labelStyles, 
+  primaryButtonStyles, 
+  secondaryButtonStyles, 
+  errorStyles, 
+  titleStylesLarge, 
+  subtitleStyles, 
+  smallTextStyles 
+} from '@/lib/styles'
 
 export default function Home() {
   const [roomCode, setRoomCode] = useState('')
@@ -47,29 +59,29 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
+    <div className={backgroundGradient}>
       <div className="w-full max-w-md">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 space-y-8">
+        <div className={containerStyles}>
           {/* Header */}
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className={titleStylesLarge}>
               Prompt Battle
             </h1>
-            <p className="text-gray-600 text-sm">
+            <p className={subtitleStyles}>
               Challenge your creativity in real-time
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className={errorStyles}>
               {error}
             </div>
           )}
 
           {/* Username Input */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="username" className={labelStyles}>
               Your Name
             </label>
             <input
@@ -81,7 +93,7 @@ export default function Home() {
                 setError('')
               }}
               placeholder="Enter your name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+              className={inputStyles}
               required
             />
           </div>
@@ -91,11 +103,11 @@ export default function Home() {
             <button
               onClick={handleCreateRoom}
               disabled={isCreating}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className={primaryButtonStyles}
             >
               {isCreating ? 'Creating Room...' : 'Create Room'}
             </button>
-            <p className="text-xs text-gray-500 text-center">
+            <p className={smallTextStyles}>
               Start a new game and invite a friend
             </p>
           </div>
@@ -113,7 +125,7 @@ export default function Home() {
           {/* Join Room */}
           <form onSubmit={handleJoinRoom} className="space-y-3">
             <div>
-              <label htmlFor="roomCode" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="roomCode" className={labelStyles}>
                 Room Code
               </label>
               <input
@@ -126,25 +138,25 @@ export default function Home() {
                 }}
                 placeholder="Enter 6-character code"
                 maxLength={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-center text-lg font-mono uppercase"
+                className={`${inputStyles} text-center text-lg font-mono uppercase`}
                 required
               />
             </div>
             <button
               type="submit"
               disabled={isJoining || roomCode.length !== 6}
-              className="w-full bg-white border-2 border-purple-600 text-purple-600 font-semibold py-4 px-6 rounded-xl hover:bg-purple-50 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className={secondaryButtonStyles}
             >
               {isJoining ? 'Joining Room...' : 'Join Room'}
             </button>
-            <p className="text-xs text-gray-500 text-center">
+            <p className={smallTextStyles}>
               Join an existing game with a code
             </p>
           </form>
 
           {/* Footer */}
           <div className="pt-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
+            <p className={smallTextStyles}>
               Compete against your friends to create the best AI prompts
             </p>
           </div>

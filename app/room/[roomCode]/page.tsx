@@ -2,6 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { 
+  backgroundGradient, 
+  containerStylesSmall, 
+  titleStyles, 
+  subtitleStyles, 
+  smallTextStyles,
+  primaryButtonStyles,
+  grayButtonStyles,
+  smallButtonStyles,
+  roomCodeContainerStyles,
+  roomCodeTextStyles,
+  playerCardStyles,
+  avatarStyles,
+  statusBadgeStyles,
+  textareaStyles,
+  labelStyles,
+  successStyles,
+  infoStyles,
+  formFieldStyles
+} from '@/lib/styles'
 
 export default function RoomPage() {
   const params = useParams()
@@ -48,7 +68,7 @@ export default function RoomPage() {
 
   if (!username) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center">
+      <div className={backgroundGradient}>
         <div className="text-white text-2xl">Loading...</div>
       </div>
     )
@@ -57,20 +77,20 @@ export default function RoomPage() {
   if (!gameStarted) {
     // Waiting Room
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
+      <div className={backgroundGradient}>
         <div className="w-full max-w-2xl">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 space-y-6">
+          <div className={containerStylesSmall}>
             <div className="text-center space-y-4">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className={titleStyles}>
                 Waiting Room
               </h1>
-              <div className="bg-purple-100 rounded-xl p-4">
+              <div className={roomCodeContainerStyles}>
                 <p className="text-sm text-gray-600 mb-2">Room Code</p>
                 <div className="flex items-center justify-center gap-3">
-                  <p className="text-4xl font-mono font-bold text-purple-700">{roomCode}</p>
+                  <p className={roomCodeTextStyles}>{roomCode}</p>
                   <button
                     onClick={handleCopyCode}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                    className={smallButtonStyles}
                   >
                     Copy
                   </button>
@@ -81,9 +101,9 @@ export default function RoomPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-gray-700">Players</h2>
               {players.map((player, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={index} className={playerCardStyles}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                    <div className={avatarStyles}>
                       {player[0].toUpperCase()}
                     </div>
                     <div>
@@ -91,11 +111,7 @@ export default function RoomPage() {
                       <p className="text-xs text-purple-600">You</p>
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    isReady
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-yellow-100 text-yellow-700'
-                  }`}>
+                  <span className={statusBadgeStyles(isReady)}>
                     {isReady ? 'Ready' : 'Not Ready'}
                   </span>
                 </div>
@@ -124,12 +140,12 @@ export default function RoomPage() {
               <button
                 onClick={handleStartGame}
                 disabled={!isReady}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className={primaryButtonStyles}
               >
                 Start Game (Demo Mode)
               </button>
 
-              <p className="text-xs text-gray-500 text-center">
+              <p className={smallTextStyles}>
                 Note: This is a demo. Full multiplayer requires Supabase setup with authentication.
               </p>
             </div>
@@ -141,20 +157,20 @@ export default function RoomPage() {
 
   // Battle Arena
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400 flex items-center justify-center p-4">
+    <div className={backgroundGradient}>
       <div className="w-full max-w-3xl">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 space-y-6">
+        <div className={containerStylesSmall}>
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className={titleStyles}>
               Battle Arena
             </h1>
-            <p className="text-gray-600">Submit your best prompt!</p>
+            <p className={subtitleStyles}>Submit your best prompt!</p>
           </div>
 
           {!submitted ? (
-            <div className="space-y-4">
+            <div className={formFieldStyles}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelStyles}>
                   Your Prompt
                 </label>
                 <textarea
@@ -162,7 +178,7 @@ export default function RoomPage() {
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Write a creative prompt that will impress the AI judge..."
                   rows={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all resize-none"
+                  className={textareaStyles}
                   maxLength={500}
                 />
                 <div className="text-right text-sm text-gray-500 mt-1">
@@ -173,14 +189,14 @@ export default function RoomPage() {
               <button
                 onClick={handleSubmitPrompt}
                 disabled={!prompt.trim()}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className={primaryButtonStyles}
               >
                 Submit Prompt
               </button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <div className={successStyles}>
                 <div className="flex items-center gap-3 mb-3">
                   <svg className="w-6 h-6 text-green-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                     <path d="M5 13l4 4L19 7"></path>
@@ -193,7 +209,7 @@ export default function RoomPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <div className={infoStyles}>
                 <p className="text-blue-700 font-semibold mb-2">Demo Mode</p>
                 <p className="text-sm text-blue-600">
                   In full multiplayer mode with Supabase authentication:
@@ -208,7 +224,7 @@ export default function RoomPage() {
 
               <button
                 onClick={() => router.push('/')}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105"
+                className={grayButtonStyles}
               >
                 Back to Home
               </button>
