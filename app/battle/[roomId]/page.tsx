@@ -40,9 +40,42 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const handleSubmit = () => {
-    console.log("[v0] Submitting prompt:", prompt)
-    setPhase("testing")
+  const handleSubmit = async () => {
+    if (!prompt.trim()) return
+
+    try {
+      const response = await fetch('/api/rooms/submit-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId: roomId,
+          prompt: prompt.trim()
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('Error submitting prompt:', data.error)
+        alert(`Failed to submit: ${data.error}`)
+        return
+      }
+
+      console.log('Prompt submitted successfully:', data.message)
+
+      if (data.allSubmitted) {
+        // Both players have submitted, ready for judging
+        setPhase("results")
+      } else {
+        // Waiting for other player
+        alert('Prompt submitted! Waiting for opponent...')
+      }
+    } catch (error) {
+      console.error('Error submitting prompt:', error)
+      alert('Failed to submit prompt. Please try again.')
+    }
   }
 
   const handleTest = async () => {
@@ -80,12 +113,17 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
           const lines = chunk.split('\n')
 
           for (const line of lines) {
-            if (line.startsWith('0:')) {
-              const jsonStr = line.substring(2)
+            if (!line.trim() || line === 'data: [DONE]') continue
+
+            // Handle Server-Sent Events format: "data: {...}"
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.substring(6) // Remove "data: " prefix
               try {
                 const parsed = JSON.parse(jsonStr)
-                if (parsed.content) {
-                  fullText += parsed.content
+
+                // Handle text-delta events which contain the actual content
+                if (parsed.type === 'text-delta' && parsed.delta) {
+                  fullText += parsed.delta
                   setTestOutput(fullText)
                 }
               } catch (e) {
