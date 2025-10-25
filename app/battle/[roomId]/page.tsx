@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Clock, User, Send, Zap, Target, Brain, X } from "lucide-react"
+import { Clock, User, Send, Zap, Target, Brain, X, BookOpen } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 import { DefaultChatTransport } from "ai"
@@ -80,6 +80,11 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [allParticipantsSubmitted, setAllParticipantsSubmitted] = useState<boolean>(false);
   const [isJudging, setIsJudging] = useState<boolean>(false);
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+
+  // Deep research state
+  const [isResearching, setIsResearching] = useState(false);
+  const [showResearchModal, setShowResearchModal] = useState(false);
+  const [researchResults, setResearchResults] = useState("");
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -218,7 +223,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
         console.error('Error submitting prompt:', await response.json());
         return;
       }
-      
+
       const data = await response.json();
       console.log(data);
     } catch (error) {
@@ -226,6 +231,46 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     } finally {
       setIsFinalSubmitting(false);
       setIsAwaitingJudging(true);
+    }
+  };
+
+  const handleResearch = async () => {
+    setIsResearching(true);
+    setShowResearchModal(true);
+    setResearchResults("");
+
+    try {
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: battleTopic }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch research');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No reader available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        setResearchResults(prev => prev + chunk);
+      }
+    } catch (error) {
+      console.error('Research error:', error);
+      setResearchResults('Failed to fetch research. Please try again.');
+    } finally {
+      setIsResearching(false);
     }
   };
 
@@ -277,6 +322,15 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     <h3 className="font-semibold">Battle Topic</h3>
                   </div>
                   <p className="text-2xl text-balance leading-relaxed">{battleTopic}</p>
+                  <Button
+                    onClick={handleResearch}
+                    disabled={isResearching}
+                    className="mt-4 w-full"
+                    variant="outline"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    {isResearching ? "Researching..." : "Deep Research Topic"}
+                  </Button>
                 </Card>
               </div>
 
@@ -365,6 +419,38 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
           </div>
         </div>
       }
+
+      {/* Research Modal */}
+      {showResearchModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-semibold">Deep Research Results</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowResearchModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="p-6 overflow-auto flex-1">
+              {researchResults ? (
+                <div className="prose prose-invert max-w-none">
+                  <MarkdownComponent content={researchResults} />
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">Loading research...</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   )
 }
