@@ -2,30 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-<<<<<<< HEAD
-import { 
-  backgroundGradient, 
-  containerStylesSmall, 
-  titleStyles, 
-  subtitleStyles, 
+import { createClient } from '@/lib/supabase/client'
+import type { GameRoom } from '@/lib/types/database.types'
+import {
+  backgroundGradient,
+  containerStylesSmall,
+  titleStyles,
+  subtitleStyles,
   smallTextStyles,
   primaryButtonStyles,
   grayButtonStyles,
   smallButtonStyles,
   roomCodeContainerStyles,
   roomCodeTextStyles,
-  playerCardStyles,
-  avatarStyles,
-  statusBadgeStyles,
   textareaStyles,
   labelStyles,
   successStyles,
-  infoStyles,
   formFieldStyles
 } from '@/lib/styles'
-=======
-import { createClient } from '@/lib/supabase/client'
-import type { GameRoom } from '@/lib/types/database.types'
 
 interface Participant {
   id: string
@@ -35,7 +29,6 @@ interface Participant {
     username: string
   }
 }
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
 
 export default function RoomPage() {
   const params = useParams()
@@ -277,21 +270,12 @@ export default function RoomPage() {
             </div>
 
             <div className="space-y-3">
-<<<<<<< HEAD
-              <h2 className="text-lg font-semibold text-gray-700">Players</h2>
-              {players.map((player, index) => (
-                <div key={index} className={playerCardStyles}>
-                  <div className="flex items-center gap-3">
-                    <div className={avatarStyles}>
-                      {player[0].toUpperCase()}
-=======
               <h2 className="text-lg font-semibold text-gray-700">Players ({participants.length}/{room?.max_players || 2})</h2>
               {participants.map((participant) => (
                 <div key={participant.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
                       {participant.profiles?.username?.[0]?.toUpperCase() || 'U'}
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">{participant.profiles?.username || 'Unknown'}</p>
@@ -300,17 +284,12 @@ export default function RoomPage() {
                       )}
                     </div>
                   </div>
-<<<<<<< HEAD
-                  <span className={statusBadgeStyles(isReady)}>
-                    {isReady ? 'Ready' : 'Not Ready'}
-=======
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                     participant.is_ready
                       ? 'bg-green-100 text-green-700'
                       : 'bg-yellow-100 text-yellow-700'
                   }`}>
                     {participant.is_ready ? 'Ready' : 'Not Ready'}
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                   </span>
                 </div>
               ))}
@@ -337,19 +316,6 @@ export default function RoomPage() {
                 {isReady ? 'Not Ready' : 'Ready'}
               </button>
 
-<<<<<<< HEAD
-              <button
-                onClick={handleStartGame}
-                disabled={!isReady}
-                className={primaryButtonStyles}
-              >
-                Start Game (Demo Mode)
-              </button>
-
-              <p className={smallTextStyles}>
-                Note: This is a demo. Full multiplayer requires Supabase setup with authentication.
-              </p>
-=======
               {room?.host_id === currentUserId && (
                 <button
                   onClick={handleStartGame}
@@ -365,7 +331,6 @@ export default function RoomPage() {
                   Waiting for host to start the game...
                 </div>
               )}
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
             </div>
           </div>
         </div>
@@ -427,13 +392,8 @@ export default function RoomPage() {
                 </div>
               </div>
 
-<<<<<<< HEAD
-              <div className={infoStyles}>
-                <p className="text-blue-700 font-semibold mb-2">Demo Mode</p>
-=======
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <p className="text-blue-700 font-semibold mb-2">Waiting for Opponent</p>
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
                 <p className="text-sm text-blue-600">
                   Once both players submit, the AI will judge the prompts!
                 </p>

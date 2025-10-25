@@ -287,13 +287,8 @@ export default function Home() {
 
           {/* Footer */}
           <div className="pt-4 border-t border-gray-200">
-<<<<<<< HEAD
             <p className={smallTextStyles}>
-              Compete against your friends to create the best AI prompts
-=======
-            <p className="text-xs text-gray-500 text-center">
               Real-time multiplayer powered by Supabase
->>>>>>> 39b1097 (Implement Supabase database integration for real-time multiplayer)
             </p>
           </div>
         </div>
