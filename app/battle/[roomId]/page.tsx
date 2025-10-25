@@ -15,6 +15,7 @@ import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import type { RealtimeChannel } from "@supabase/supabase-js"
 
 function MarkdownComponent({ content }: { content: string }) {
   return (
@@ -31,12 +32,28 @@ function MarkdownComponent({ content }: { content: string }) {
   );
 }
 
-function AwaitingJudging() {
+function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipantsSubmitted: boolean; isJudging: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-5xl font-bold text-gray-400 mb-4">Prompt submitted!</h1>
-      <p>We are still waiting for others to submit their prompts...</p>
-      <p>Once everyone has submitted, we will automatically start judging.</p>
+      {!allParticipantsSubmitted && (
+        <>
+          <p>We are still waiting for others to submit their prompts...</p>
+          <p>Once everyone has submitted, we will automatically start judging.</p>
+        </>
+      )}
+      {allParticipantsSubmitted && !isJudging && (
+        <>
+          <p>All participants have submitted their prompts!</p>
+          <p>Starting the judging process...</p>
+        </>
+      )}
+      {isJudging && (
+        <>
+          <p>Judging in progress...</p>
+          <p>Please wait while our AI evaluates the prompts.</p>
+        </>
+      )}
     </div>
   );
 }
@@ -60,6 +77,9 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
 
   const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
   const [isAwaitingJudging, setIsAwaitingJudging] = useState<boolean>(false);
+  const [allParticipantsSubmitted, setAllParticipantsSubmitted] = useState<boolean>(false);
+  const [isJudging, setIsJudging] = useState<boolean>(false);
+  const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -78,6 +98,81 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     };
     fetchParticipant();
   }, [roomId]);
+
+  // Set up realtime subscription to listen for participant changes
+  useEffect(() => {
+    const supabase = createClient();
+    
+    const channel = supabase
+      .channel(`room-${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_participants',
+          filter: `room_id=eq.${roomId}`,
+        },
+        async (payload) => {
+          console.log('Participant change detected:', payload);
+          
+          // Check if all participants have submitted
+          const { data: participants, error } = await supabase
+            .from('game_participants')
+            .select('*')
+            .eq('room_id', roomId);
+            
+          if (!error && participants) {
+            const allSubmitted = participants.every(p => p.prompt !== null);
+            setAllParticipantsSubmitted(allSubmitted);
+            
+            if (allSubmitted && !isJudging) {
+              setIsJudging(true);
+              // Trigger judging process
+              try {
+                const response = await fetch('/api/judge', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ roomId }),
+                });
+                
+                if (response.ok) {
+                  // Small delay to ensure the judging process completes
+                  setTimeout(() => {
+                    router.push(`/results/${roomId}`);
+                  }, 2000);
+                } else {
+                  const errorData = await response.json();
+                  console.error('Error triggering judging:', errorData);
+                  setIsJudging(false); // Reset judging state on error
+                }
+              } catch (error) {
+                console.error('Error triggering judging:', error);
+                setIsJudging(false); // Reset judging state on error
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    setRealtimeChannel(channel);
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [roomId, isJudging, router]);
+
+  // Cleanup realtime channel on unmount
+  useEffect(() => {
+    return () => {
+      if (realtimeChannel) {
+        realtimeChannel.unsubscribe();
+      }
+    };
+  }, [realtimeChannel]);
 
   /*
   useEffect(() => {
@@ -148,7 +243,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     <>
       <Navigation />
 
-      {isAwaitingJudging ? <AwaitingJudging /> :
+      {isAwaitingJudging ? <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} /> :
         <div>
           <div className="relative z-10 container mx-auto px-4 py-6">
             {/* Header with timer and players */}

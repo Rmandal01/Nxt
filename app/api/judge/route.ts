@@ -200,15 +200,27 @@ Be fair, objective, and provide constructive feedback in your reasoning.`
     // Update player stats
     for (const participant of participants) {
       const isWinner = participant.user_id === winnerId
+      
+      // Get current stats
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('wins, losses')
+        .eq('id', participant.user_id)
+        .single()
+
+      if (fetchError) {
+        console.error('Error fetching current stats:', fetchError)
+        continue
+      }
+
+      const newWins = isWinner ? (currentProfile.wins || 0) + 1 : (currentProfile.wins || 0)
+      const newLosses = !isWinner ? (currentProfile.losses || 0) + 1 : (currentProfile.losses || 0)
+
       const { error: statsError } = await supabase
         .from('profiles')
         .update({
-          wins: isWinner
-            ? supabase.rpc('increment', { x: 1 })
-            : undefined,
-          losses: !isWinner
-            ? supabase.rpc('increment', { x: 1 })
-            : undefined,
+          wins: newWins,
+          losses: newLosses
         })
         .eq('id', participant.user_id)
 
