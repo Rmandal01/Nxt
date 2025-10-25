@@ -84,8 +84,7 @@ This creates all tables, security policies, indexes, and enables real-time subsc
 cp .env.local.example .env.local
 ```
 
-2. Edit `.env.local` with your actual keys:
-
+2. Edit `.env.local` with your actual keys, e.g.:
 ```env
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxxxxxxx.supabase.co
@@ -99,19 +98,29 @@ GEMINI_API_KEY=your_gemini_api_key_here
 **Important**: Never commit `.env.local` to git! It's already in `.gitignore`.
 
 ---
+## Step 4: Deploy Edge Functions to Supabase
+First log in to Supabase through the CLI:
+```bash
+npx supabase login
+```
+You should get either a browser link or a URL where you can enter a verification code.
+
+Then deploy the ai-judge function (this is the backend function that will be called when everyone's submitted their prompts). Select the Supabase project that you're using for this repo.
+```bash
+npx supabase functions deploy ai-judge
+```
+
+Then, import the secrets from your .env file onto the server
+```bash
+npx supabase secrets set --env-file .env.local
+```
+
 
 ## Step 4: Install Dependencies
 
 ```bash
 npm install
 ```
-
-This installs:
-- `@supabase/supabase-js` - Supabase client
-- `@supabase/ssr` - Server-side rendering support
-- `@google/generative-ai` - Gemini AI SDK
-
----
 
 ## Step 5: Run the Development Server
 
@@ -290,7 +299,5 @@ Edit the judging prompt in `app/api/judge/route.ts` to change criteria.
 - [Gemini API Documentation](https://ai.google.dev/docs)
 
 ---
-
-**Built with Next.js 16, Supabase, and Gemini AI**
 
 Happy battling! 🎮✨
