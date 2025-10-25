@@ -39,6 +39,8 @@ export default function WaitingRoomPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setCurrentUserId(user.id)
+      } else {
+        router.push('/') // bruh why are you even here
       }
     }
 
@@ -117,39 +119,55 @@ export default function WaitingRoomPage() {
   }
 
   const handleToggleReady = async () => {
-    const newReadyState = !isReady
-    setIsReady(newReadyState)
+    // Optimistically update the UI and capture the new state.
+    // This runs synchronously and guarantees we have the *actual* new state.
+    let intendedNewState;
+    setIsReady((currentState) => {
+      intendedNewState = !currentState;
+      return intendedNewState;
+    });
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (!user) {
+        // If we can't get a user, we must roll back the UI change.
+        throw new Error('User not found, rolling back UI state.');
+      }
 
+      // Send the *actual* new state (captured above) to the database.
       const { error } = await supabase
         .from('game_participants')
-        .update({ is_ready: newReadyState })
+        .update({ is_ready: intendedNewState }) 
         .eq('room_id', roomId)
         .eq('user_id', user.id)
 
       if (error) {
         console.error('Error updating ready status:', error)
-        // Revert on error
-        setIsReady(!newReadyState)
+        // Roll back the UI.
+        setIsReady((currentState) => !currentState);
       }
     } catch (error) {
       console.error('Failed to update ready status:', error)
-      setIsReady(!newReadyState)
+      setIsReady((currentState) => !currentState);
     }
   }
 
-  const allPlayersReady = players.every((p) => p.isReady) && players.length === 2
+  const allPlayersReady = players.every((p) => p.isReady) && players.length === 2; // need to be more than 1 player
 
   useEffect(() => {
     if (allPlayersReady) {
       // Auto-start game when all players are ready
-      setTimeout(() => {
-        console.log("[v0] All players ready, starting game...")
+      setTimeout(async () => {
+        // update status in db to playing
+        const supabase = createClient();
+        const { error } = await supabase.from('game_rooms').update({ status: 'playing' }).eq('id', roomId);
+        
+        if (error) {
+          console.error('Error updating room status:', error);
+          return;
+        }
         router.push(`/battle/${roomId}`)
       }, 2000)
     }
@@ -177,13 +195,7 @@ export default function WaitingRoomPage() {
     <>
       <Navigation />
 
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 animate-gradient" />
-
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
-
+      <div>
         <div className="relative z-10 container mx-auto px-4 py-12">
           <div className="max-w-2xl mx-auto space-y-8">
             {/* Header */}
@@ -278,7 +290,6 @@ export default function WaitingRoomPage() {
             <div className="space-y-4 animate-slide-up" style={{ animationDelay: "0.3s" }}>
               <Button
                 onClick={handleToggleReady}
-                disabled={players.length < 2}
                 className={`w-full h-14 text-lg font-semibold transition-all ${
                   isReady
                     ? "bg-success hover:bg-success/90 text-success-foreground"
@@ -301,7 +312,7 @@ export default function WaitingRoomPage() {
               {allPlayersReady && (
                 <Card className="p-4 bg-gradient-to-r from-success/20 to-primary/20 border-success/30 animate-pulse-glow">
                   <p className="text-center font-medium text-success">
-                    All players ready! Starting battle in a moment...
+                    All players ready, starting!
                   </p>
                 </Card>
               )}

@@ -180,36 +180,8 @@ export default function HomePage() {
     <>
       <Navigation />
 
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20 animate-gradient" />
-
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
-
+      <div>
         <div className="relative z-10 container mx-auto px-4 py-12">
-          {/* Header */}
-          <header className="flex items-center justify-between mb-16 animate-slide-up">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Prompt Battle
-              </h1>
-            </div>
-            <nav className="flex items-center gap-4">
-              <Button variant="ghost" size="sm">
-                <BookOpen className="w-4 h-4 mr-2" />
-                Learn
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Trophy className="w-4 h-4 mr-2" />
-                Leaderboard
-              </Button>
-            </nav>
-          </header>
-
           <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
             {/* Left side - Hero content */}
             <div className="space-y-8 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -238,7 +210,7 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground">Compete head-to-head with other players</p>
                 </Card>
                 <Card className="p-4 glass-effect border-accent/20 hover:border-accent/40 transition-colors">
-                  <Code2 className="w-8 h-8 text-accent mb-2" />
+                  <Code2 className="w-8 h-8 text-primary mb-2" />
                   <h3 className="font-semibold mb-1">Test Playground</h3>
                   <p className="text-sm text-muted-foreground">Practice before you submit</p>
                 </Card>
@@ -335,25 +307,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </Card>
-          </div>
-
-          {/* Stats bar */}
-          <div
-            className="mt-16 grid grid-cols-3 gap-6 max-w-3xl mx-auto animate-slide-up"
-            style={{ animationDelay: "0.3s" }}
-          >
-            <Card className="p-6 text-center glass-effect border-primary/20">
-              <div className="text-3xl font-bold text-primary mb-1">10K+</div>
-              <div className="text-sm text-muted-foreground">Active Players</div>
-            </Card>
-            <Card className="p-6 text-center glass-effect border-accent/20">
-              <div className="text-3xl font-bold text-accent mb-1">50K+</div>
-              <div className="text-sm text-muted-foreground">Battles Played</div>
-            </Card>
-            <Card className="p-6 text-center glass-effect border-success/20">
-              <div className="text-3xl font-bold text-success mb-1">95%</div>
-              <div className="text-sm text-muted-foreground">Skill Improvement</div>
             </Card>
           </div>
         </div>

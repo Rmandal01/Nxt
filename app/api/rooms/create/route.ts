@@ -26,11 +26,9 @@ export async function POST(request: Request) {
     // Generate unique room code
     let roomCode = generateRoomCode()
     let isUnique = false
-    let attempts = 0
-    const maxAttempts = 10
 
     // Ensure room code is unique
-    while (!isUnique && attempts < maxAttempts) {
+    while (!isUnique) {
       const { data: existingRoom } = await supabase
         .from('game_rooms')
         .select('id')
@@ -42,10 +40,10 @@ export async function POST(request: Request) {
         isUnique = true
       } else {
         roomCode = generateRoomCode()
-        attempts++
       }
     }
 
+    // this should never happen lol
     if (!isUnique) {
       return NextResponse.json(
         { error: 'Failed to generate unique room code' },
