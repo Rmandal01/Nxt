@@ -14,7 +14,7 @@ export default function PlaygroundPage() {
   const [prompt, setPrompt] = useState("")
   const [output, setOutput] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
-  const [model, setModel] = useState("gpt-4")
+  const [model, setModel] = useState("gemini-2.0-flash-exp")
   const [temperature, setTemperature] = useState("0.7")
 
   const handleGenerate = async () => {
@@ -149,6 +149,7 @@ export default function PlaygroundPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Latest)</SelectItem>
                         <SelectItem value="gpt-4">GPT-4</SelectItem>
                         <SelectItem value="gpt-3.5">GPT-3.5 Turbo</SelectItem>
                         <SelectItem value="claude">Claude 3</SelectItem>
