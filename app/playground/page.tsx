@@ -53,12 +53,17 @@ export default function PlaygroundPage() {
           const lines = chunk.split('\n')
 
           for (const line of lines) {
-            if (line.startsWith('0:')) {
-              const jsonStr = line.substring(2)
+            if (!line.trim() || line === 'data: [DONE]') continue
+
+            // Handle Server-Sent Events format: "data: {...}"
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.substring(6) // Remove "data: " prefix
               try {
                 const parsed = JSON.parse(jsonStr)
-                if (parsed.content) {
-                  fullText += parsed.content
+
+                // Handle text-delta events which contain the actual content
+                if (parsed.type === 'text-delta' && parsed.delta) {
+                  fullText += parsed.delta
                   setOutput(fullText)
                 }
               } catch (e) {
