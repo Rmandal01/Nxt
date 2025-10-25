@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS profiles CASCADE;
 -- Create profiles table (without auth reference)
 CREATE TABLE profiles (
   id TEXT PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
+  username TEXT NOT NULL,
   wins INTEGER DEFAULT 0,
   losses INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
