@@ -140,14 +140,3 @@ serve(async (req: Request) => {
     });
   }
 });
-
-/* -- Don't forget to create this helper RPC in your SQL Editor!
-CREATE OR REPLACE FUNCTION increment_wins(user_id_to_update TEXT)
-RETURNS VOID AS $$
-BEGIN
-  UPDATE profiles
-  SET wins = wins + 1
-  WHERE id = user_id_to_update;
-END;
-$$ LANGUAGE plpgsql;
-*/
