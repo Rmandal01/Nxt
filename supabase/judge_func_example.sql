@@ -11,7 +11,7 @@ declare
   room_status text;
   total_participants int;
   submitted_participants int;
-  edge_function_url text := 'https://eltsewvhxxqoxjoijrmt.supabase.co/functions/v1/ai-judge.supabase.co/functions/v1/ai-judge'; -- ⚠️ Paste your function URL here
+  edge_function_url text := 'https://eltsewvhxxqoxjoijrmt.supabase.co/functions/v1/ai-judge'; -- ⚠️ Paste your function URL here
 begin
   -- Get the current status of the room
   select status into room_status
@@ -43,7 +43,7 @@ begin
         body := jsonb_build_object('room_id', new.room_id),
         headers := jsonb_build_object(
           'Content-Type', 'application/json',
-          'Authorization', 'Bearer ' || 'NEXT_PUBLIC_SUPABASE_ANON_KEY' -- ⚠️ Paste your anon key
+          'Authorization', 'Bearer ' || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsdHNld3ZoeHhxb3hqb2lqcm10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNDI4MTIsImV4cCI6MjA3NjkxODgxMn0.ydfTy63jfJQ4SQWBASI1AoEPfJruPcnFPKBd_rcrc2k' -- ⚠️ Paste your anon key
         )
       );
     end if;
