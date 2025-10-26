@@ -15,6 +15,7 @@ export default function HomePage() {
   const [roomCode, setRoomCode] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
+  const [activeTab, setActiveTab] = useState<"host" | "join">("host")
   const router = useRouter()
   const { toast } = useToast()
 
@@ -42,20 +43,6 @@ export default function HomePage() {
       })
 
       if (authError) throw authError
-
-      // Create profile for the user
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user!.id,
-          username: playerName,
-        })
-        .select()
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError)
-        throw new Error("Failed to create user profile")
-      }
 
       // Create room via API
       const response = await fetch("/api/rooms/create", {
@@ -126,20 +113,6 @@ export default function HomePage() {
       })
 
       if (authError) throw authError
-
-      // Create profile for the user
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user!.id,
-          username: playerName,
-        })
-        .select()
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError)
-        throw new Error("Failed to create user profile")
-      }
 
       // Join room via API
       const response = await fetch("/api/rooms/join", {
@@ -235,62 +208,91 @@ export default function HomePage() {
                   <p className="text-muted-foreground">Start your journey to prompt mastery</p>
                 </div>
 
-                {/* Player name input */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Your Name</label>
-                  <Input
-                    placeholder="Enter your name"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    className="bg-secondary/50 border-border/50 focus:border-primary transition-colors"
-                  />
-                </div>
-
-                {/* Create room */}
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleCreateRoom}
-                    disabled={!playerName || isCreating}
-                    className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg font-semibold"
+                {/* Tab Navigation */}
+                <div className="flex bg-secondary/30 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab("host")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === "host"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    {isCreating ? "Creating..." : "Create Room"}
-                  </Button>
-                  <p className="text-xs text-center text-muted-foreground">Start a new game and invite a friend</p>
-                </div>
-
-                {/* Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border/50" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">or</span>
-                  </div>
-                </div>
-
-                {/* Join room */}
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Room Code</label>
-                    <Input
-                      placeholder="Enter 6-character code"
-                      value={roomCode}
-                      onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                      maxLength={6}
-                      className="bg-secondary/50 border-border/50 focus:border-accent transition-colors text-center text-lg tracking-widest font-mono"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleJoinRoom}
-                    disabled={!playerName || roomCode.length !== 6 || isJoining}
-                    variant="outline"
-                    className="w-full h-12 border-accent/50 hover:bg-accent/10 hover:border-accent transition-colors text-lg font-semibold bg-transparent"
+                    Host
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("join")}
+                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === "join"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Users className="w-5 h-5 mr-2" />
-                    {isJoining ? "Joining..." : "Join Room"}
-                  </Button>
+                    Join
+                  </button>
                 </div>
+
+                {/* Tab Content */}
+                {activeTab === "host" ? (
+                  <div className="space-y-4">
+                    {/* Player name input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Your Name</label>
+                      <Input
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        className="bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                      />
+                    </div>
+
+                    {/* Create room button */}
+                    <Button
+                      onClick={handleCreateRoom}
+                      disabled={!playerName || isCreating}
+                      className="w-full h-12 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg font-semibold"
+                    >
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      {isCreating ? "Creating..." : "Create Room"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Player name input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Your Name</label>
+                      <Input
+                        placeholder="Enter your name"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        className="bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                      />
+                    </div>
+
+                    {/* Room code input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Room Code</label>
+                      <Input
+                        placeholder="Enter 6-character code"
+                        value={roomCode}
+                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                        maxLength={6}
+                        className="bg-secondary/50 border-border/50 focus:border-accent transition-colors text-center text-lg tracking-widest font-mono"
+                      />
+                    </div>
+
+                    {/* Join room button */}
+                    <Button
+                      onClick={handleJoinRoom}
+                      disabled={!playerName || roomCode.length !== 6 || isJoining}
+                      variant="outline"
+                      className="w-full h-12 border-accent/50 hover:bg-accent/10 hover:border-accent transition-colors text-lg font-semibold bg-transparent"
+                    >
+                      <Users className="w-5 h-5 mr-2" />
+                      {isJoining ? "Joining..." : "Join Room"}
+                    </Button>
+                  </div>
+                )}
 
                 {/* Quick start options */}
                 <div className="pt-4 border-t border-border/50 space-y-2">

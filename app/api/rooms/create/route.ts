@@ -36,6 +36,23 @@ export async function POST(request: Request) {
       )
     }
 
+    // Ensure user profile exists (handle race condition)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username: user.user_metadata?.player_name || 'Anonymous',
+      })
+      .select()
+
+    if (profileError) {
+      console.error('Profile creation error:', profileError)
+      return NextResponse.json(
+        { error: 'Failed to create user profile' },
+        { status: 500 }
+      )
+    }
+
     // Generate unique room code
     let roomCode = generateRoomCode()
     let isUnique = false
