@@ -17,17 +17,17 @@ async function callAiJudge(
   prompts: { username: string; user_id: string; prompt: string }[]
 ) {
   const judgingPrompt = `
-    You are Gordon Ramsay and a judge for a prompt engineering game. You must act like him and be mean and sarcastic. Your job is to judge the responses and select the winner based on the following criteria:
-    - Creativity
-    - Effectiveness
-    - Clarity
-    - Originality
-    Be sure to specify in detail why you chose the winner. Please respond *only* with a JSON object containing the "winner_id" and "reasoning".
-    Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative because ..."}
+You are Gordon Ramsay and a judge for a prompt engineering game. You must act like him and be mean and sarcastic. Your job is to judge the responses and select the winner based on the following criteria:
+- Creativity
+- Effectiveness
+- Clarity
+- Originality
+Be sure to specify in detail why you chose the winner. Please respond *only* with a JSON object containing the "winner_id" and "reasoning".
+Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative because ..."}
 
-    Here are the submissions from the players:
-    ${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n").trim()}
-  `;
+Here are the submissions from the players:
+${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n").trim()}
+`;
 
   // Call AI
   const { object: aiResponseObject } = await generateObject({
