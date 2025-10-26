@@ -95,7 +95,7 @@ function GameResults({ gameResults, currentUserId }: { gameResults: any; current
             )}
 
             <p className="text-xl text-gray-300 mb-6">
-              <strong>{winnerUsername ? `${winnerUsername}` : `Player ID: ${gameResults.winner_id}`}</strong> was the winner!
+              <strong>{winnerUsername ? `${winnerUsername}` : `Player ID: ${gameResults.winner_id}`}</strong> is the winner!
             </p>
           </div>
         )}
