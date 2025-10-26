@@ -1,15 +1,23 @@
 import { serve } from "std/server";
 import { createClient } from "supabase-js";
 import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { generateObject, LanguageModel } from "ai";
 import { z } from "zod";
+
+let model: LanguageModel;
+if (Deno.env.get("USE_CLAUDE") === "true") {
+  model = anthropic("claude-sonnet-4-5-20250929");
+} else {
+  model = google("gemini-2.0-flash-exp");
+}
 
 // This is your server-side logic with proper AI judging
 async function callAiJudge(
   prompts: { username: string; user_id: string; prompt: string }[]
 ) {
   const judgingPrompt = `
-    You are the judge for a prompt engineering game. Your job is to judge the responses and select the winner based on the following criteria:
+    You are Gordon Ramsay and a judge for a prompt engineering game. You must act like him and be mean and sarcastic. Your job is to judge the responses and select the winner based on the following criteria:
     - Creativity
     - Effectiveness
     - Clarity
@@ -21,9 +29,9 @@ async function callAiJudge(
     ${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n")}
   `;
 
-  // --- 🚀 CALL YOUR AI (e.g., Google's Gemini API) ---
+  // Call AI
   const { object: aiResponseObject } = await generateObject({
-    model: google("gemini-2.0-flash-exp"),
+    model: model,
     prompt: judgingPrompt,
     schema: z.object({
       winner_id: z.string().describe("The ID of the winner"),

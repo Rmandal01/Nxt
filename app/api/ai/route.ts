@@ -1,4 +1,5 @@
 import { google } from "@ai-sdk/google";
+import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, streamText } from "ai";
 
 export async function POST(request: Request) {
@@ -6,9 +7,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const messages = body.messages;
 
+    let model;
+    if (process.env.USE_CLAUDE === "true") {
+      model = anthropic("claude-sonnet-4-5-20250929");
+    } else {
+      model = google("gemini-2.0-flash-exp");
+    }
+
     // Returns a StreamTextResult
     const result = streamText({
-      model: google("gemini-2.0-flash-exp"),
+      model: model,
       system: `You are a helpful AI assistant. Execute the user's prompts and provide helpful, creative, and engaging responses. Just respond naturally to whatever the user asks - don't give feedback on the prompt itself, just answer it.`,
       messages: convertToModelMessages(messages), // Convert UIMessage[] to ModelMessage[] (this one doesn't include metadata like timestamps, it's just the messages),
     });
