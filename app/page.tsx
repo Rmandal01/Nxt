@@ -204,8 +204,7 @@ export default function HomePage() {
             <Card className="p-8 glass-effect border-primary/20 animate-slide-up" style={{ animationDelay: "0.2s" }}>
               <div className="space-y-6">
                 <div className="text-center space-y-2">
-                  <h3 className="text-2xl font-bold">Enter the Arena</h3>
-                  <p className="text-muted-foreground">Start your journey to prompt mastery</p>
+                  <h3 className="text-2xl font-bold">Start Playing</h3>
                 </div>
 
                 {/* Tab Navigation */}
@@ -293,21 +292,6 @@ export default function HomePage() {
                     </Button>
                   </div>
                 )}
-
-                {/* Quick start options */}
-                <div className="pt-4 border-t border-border/50 space-y-2">
-                  <p className="text-sm font-medium text-center text-muted-foreground">Quick Start</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      <BookOpen className="w-3 h-3 mr-1" />
-                      Tutorial
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      <Code2 className="w-3 h-3 mr-1" />
-                      Practice
-                    </Button>
-                  </div>
-                </div>
               </div>
             </Card>
           </div>
