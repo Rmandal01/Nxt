@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Sparkles,
   Home,
   Code2,
   BookOpen,
@@ -15,6 +14,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -37,7 +37,13 @@ export function Navigation() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
+                <Image 
+                  src="/favicon.ico" 
+                  alt="Logo" 
+                  width={24} 
+                  height={24}
+                  className="w-full h-full"
+                />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Impromptu

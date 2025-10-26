@@ -26,7 +26,7 @@ async function callAiJudge(
     Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative because ..."}
 
     Here are the submissions from the players:
-    ${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n")}
+    ${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n").trim()}
   `;
 
   // Call AI
