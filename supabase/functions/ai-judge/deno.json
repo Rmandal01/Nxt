@@ -1,6 +1,10 @@
 {
   "imports": {
     "std/server": "https://deno.land/std@0.168.0/http/server.ts",
-    "supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+    "supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "ai": "npm:ai@latest/",
+    "@ai-sdk/google": "npm:@ai-sdk/google@latest",
+    "@ai-sdk/anthropic": "npm:@ai-sdk/anthropic@latest",
+    "zod": "npm:zod@latest"
   }
 }

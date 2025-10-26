@@ -5,33 +5,19 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Clock, User, Send, Zap, Target, Brain, X, BookOpen } from "lucide-react"
+import { Clock, Send, Target, X, BookOpen } from "lucide-react"
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 import { DefaultChatTransport } from "ai"
-import { useChat } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react"
 
-import Markdown from "react-markdown";
-import remarkBreaks from "remark-breaks";
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { RealtimeChannel } from "@supabase/supabase-js"
 import { notFound } from "next/navigation"
 
-function MarkdownComponent({ content }: { content: string }) {
-  return (
-    <Markdown
-      remarkPlugins={[remarkBreaks]}
-      components={{
-        a: ({ children, href }) => (
-          <a href={href} target="_blank" rel="noopener noreferrer">
-            {children}
-          </a>
-        ),
-      }}
-    >{content}</Markdown>
-  );
-}
+import MarkdownComponent from "@/components/MarkdownComponent"
+import GameResults from "@/components/GameResults"
 
 function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipantsSubmitted: boolean; isJudging: boolean }) {
   return (
@@ -59,6 +45,8 @@ function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipa
   );
 }
 
+
+
 export default function BattleArena({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = use(params)
   const router = useRouter();
@@ -66,34 +54,53 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [prompt, setPrompt] = useState("")
   const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
 
-  const [atBottom, setAtBottom] = useState<boolean>(true);
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const { messages, sendMessage } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/ai", // So we use the right route, see https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat#transport.default-chat-transport
-    }),
-  });
-
   const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
   const [isAwaitingJudging, setIsAwaitingJudging] = useState<boolean>(false);
   const [allParticipantsSubmitted, setAllParticipantsSubmitted] = useState<boolean>(false);
   const [isJudging, setIsJudging] = useState<boolean>(false);
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+  
+  // Game results state
+  const [gameResults, setGameResults] = useState<any>(null);
+  const [hasGameResults, setHasGameResults] = useState<boolean>(false);
+  
+  // Current user state
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Deep research state
   const [isResearching, setIsResearching] = useState(false);
   const [showResearchModal, setShowResearchModal] = useState(false);
   const [researchResults, setResearchResults] = useState("");
 
-  const [topic, setTopic] = useState<string>("");
+  const [atBottom, setAtBottom] = useState<boolean>(true);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Model selection state
+  const [selectedModel, setSelectedModel] = useState("gemini");
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/ai",
+    }),
+  });
+
+  // Available models
+  const availableModels = [
+    { id: "gemini", name: "Gemini 2.0 Flash", provider: "Google" },
+    { id: "claude", name: "Claude Sonnet 4.5", provider: "Anthropic"},
+    { id: "gpt", name: "GPT-4o Mini", provider: "OpenAI"},
+  ];
+
+  // Mock data - replace with real backend data
+  const battleTopic = "Create a marketing email for a sustainable coffee brand"
 
   useEffect(() => {
     const fetchParticipant = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setCurrentUserId(user.id);
         const { data: participant } = await supabase.from('game_participants').select('*').eq('user_id', user.id).eq('room_id', roomId).single();
 
         // get topic from roomId
@@ -128,44 +135,35 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       
       if (allSubmitted && !isJudging) {
         setIsJudging(true);
-
-        /*
-        // Trigger judging process
-        try {
-          const response = await fetch('/api/judge', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ roomId }),
-          });
-          
-          if (response.ok) {
-            // Small delay to ensure the judging process completes
-            setTimeout(() => {
-              router.push(`/results/${roomId}`);
-            }, 2000);
-          } else {
-            const errorData = await response.json();
-            console.error('Error triggering judging:', errorData);
-            setIsJudging(false); // Reset judging state on error
-          }
-        } catch (error) {
-          console.error('Error triggering judging:', error);
-          setIsJudging(false); // Reset judging state on error
-        }
-        */
       }
     }
   }, [roomId, isJudging, router]);
+
+  // Function to check for game results
+  const checkGameResults = useCallback(async () => {
+    const supabase = createClient();
+    const { data: results, error } = await supabase
+      .from('game_results')
+      .select('*')
+      .eq('room_id', roomId)
+      .maybeSingle();
+
+    if (!error && results) {
+      setGameResults(results);
+      setHasGameResults(true);
+    } else if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking game results:', error);
+    }
+  }, [roomId]);
 
   // Set up realtime subscription and initial check
   useEffect(() => {
     const supabase = createClient();
     let channel: any;
 
-    // Initial check
+    // Initial checks
     checkAllParticipantsSubmitted();
+    checkGameResults();
 
     // Set up realtime subscription to listen for participant changes
     channel = supabase
@@ -183,6 +181,19 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
           checkAllParticipantsSubmitted();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_results',
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          // Refetch game results when changes occur
+          checkGameResults();
+        }
+      )
       .subscribe();
 
     setRealtimeChannel(channel);
@@ -192,7 +203,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
         supabase.removeChannel(channel);
       }
     };
-  }, [roomId, checkAllParticipantsSubmitted]);
+  }, [roomId, checkAllParticipantsSubmitted, checkGameResults]);
 
   /*
   useEffect(() => {
@@ -213,11 +224,12 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    sendMessage({ text: prompt });
+
+    sendMessage({ text: prompt }, { body: { model: selectedModel } });
     setPrompt("");
-    
+
     if (messagesRef.current) {
-      setAtBottom(true); // Just force it
+      setAtBottom(true);
     }
   };
 
@@ -303,25 +315,13 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     <>
       <Navigation />
 
-      {isAwaitingJudging ? <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} /> :
+      {hasGameResults ? (
+        <GameResults gameResults={gameResults} currentUserId={currentUserId || ""} />
+      ) : isAwaitingJudging ? (
+        <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} />
+      ) : (
         <div>
           <div className="relative z-10 container mx-auto px-4 py-6">
-            {/* Header with timer and players */}
-            <div className="mb-6 animate-slide-up">
-              <Card className="p-4 glass-effect border-primary/20">
-                <div className="flex items-center justify-between">
-                  {/* Timer */}
-                  <div className="text-center">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-5 h-5" />
-                      <span className="text-3xl font-bold font-mono">{formatTime(timeLeft)}</span>
-                    </div>
-                    <Progress value={(timeLeft / 180) * 100} className="w-48 h-2" />
-                  </div>
-                </div>
-              </Card>
-            </div>
-
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Left sidebar - Topic and tips */}
               <div className="space-y-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -329,7 +329,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                 <Card className="p-6 glass-effect border-primary/20">
                   <div className="flex items-center gap-2 mb-4">
                     <Target className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Battle Topic</h3>
+                    <h3 className="font-semibold">Topic</h3>
                   </div>
                   <p className="text-2xl text-balance leading-relaxed">{battleTopic}</p>
                   <Button
@@ -350,6 +350,17 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold">Your Prompt</h3>
                     <div className="flex items-center gap-2">
+                      {/* Model Selector */}
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="px-3 py-1 text-xs bg-background border border-primary/20 rounded-md cursor-pointer hover:border-primary/40 transition-colors"
+                      >
+                        {availableModels.map((model) => (
+                          <option key={model.id} value={model.id}> {model.name}
+                          </option>
+                        ))}
+                      </select>
                       <Badge variant="outline" className="text-xs">
                         {prompt.length} characters
                       </Badge>
@@ -428,7 +439,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
             </div>
           </div>
         </div>
-      }
+      )}
 
       {/* Research Modal */}
       {showResearchModal && (
