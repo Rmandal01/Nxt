@@ -300,22 +300,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       ) : (
         <div>
           <div className="relative z-10 container mx-auto px-4 py-6">
-            {/* Header with timer and players */}
-            <div className="mb-6 animate-slide-up">
-              <Card className="p-4 glass-effect border-primary/20">
-                <div className="flex items-center justify-between">
-                  {/* Timer */}
-                  <div className="text-center">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-5 h-5" />
-                      <span className="text-3xl font-bold font-mono">{formatTime(timeLeft)}</span>
-                    </div>
-                    <Progress value={(timeLeft / 180) * 100} className="w-48 h-2" />
-                  </div>
-                </div>
-              </Card>
-            </div>
-
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Left sidebar - Topic and tips */}
               <div className="space-y-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -323,7 +307,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                 <Card className="p-6 glass-effect border-primary/20">
                   <div className="flex items-center gap-2 mb-4">
                     <Target className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Battle Topic</h3>
+                    <h3 className="font-semibold">Topic</h3>
                   </div>
                   <p className="text-2xl text-balance leading-relaxed">{battleTopic}</p>
                   <Button
