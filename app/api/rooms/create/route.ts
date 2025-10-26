@@ -13,6 +13,10 @@ const TOPICS = [
   "Write a story about a cat",
   "Make a recipe for the weirdest meal of all time",
   "Write a song about a unicorn",
+  "Make an argument for why 2 + 2 = 5 that sounds as convincing as possible",
+  "Explain black holes using only one-syllable words",
+  "What does silence taste like?",
+  "Describe how time feels to a tree.",
 ];
 
 export async function POST(request: Request) {

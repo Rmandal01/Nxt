@@ -400,7 +400,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                                         onClick={() => handleSubmitFinal(part.text)}
                                         disabled={isFinalSubmitting}
                                       >
-                                        {isFinalSubmitting ? "Submitting..." : "Submit Final"}
+                                        {isFinalSubmitting ? "Submitting..." : "Submit Response"}
                                       </Button>
                                     </div>
                                   );
