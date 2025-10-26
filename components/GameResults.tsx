@@ -10,34 +10,77 @@ import { Button } from "@/components/ui/button";
 import { Volume2 } from "lucide-react";
 
 import MarkdownComponent from "@/components/MarkdownComponent";
+import ScoreBreakdown from "@/components/ScoreBreakdown";
+
+interface ParticipantScore {
+  participant_id: string;
+  creativity_score: number;
+  effectiveness_score: number;
+  clarity_score: number;
+  originality_score: number;
+  total_score: number;
+  feedback: string;
+}
 
 export default function GameResults({ gameResults, currentUserId }: { gameResults: any; currentUserId: string | null }) {
   const router = useRouter();
   const [winnerUsername, setWinnerUsername] = useState<string | null>(null);
+  const [userScore, setUserScore] = useState<ParticipantScore | null>(null);
   const isWinner = currentUserId && gameResults.winner_id === currentUserId;
 
   // Define a consistent size for the images
   const imageSize = 200;
   
-  // Fetch winner's username
+  // Generate random scores for demo and fetch winner's username
   useEffect(() => {
-    const fetchWinnerUsername = async () => {
+    const fetchData = async () => {
+      const supabase = createClient();
+
+      // Fetch winner's username
       if (gameResults.winner_id) {
-        const supabase = createClient();
         const { data: profile } = await supabase
           .from('profiles')
           .select('username')
           .eq('id', gameResults.winner_id)
           .single();
-        
+
         if (profile) {
           setWinnerUsername(profile.username);
         }
       }
+
+      // Generate random scores for demo
+      if (currentUserId) {
+        // Generate realistic scores based on whether user won or lost
+        const baseScore = isWinner ? 7 : 5; // Winners get higher base scores
+        const variance = 2;
+
+        const creativity = Math.max(0, Math.min(10, Math.floor(baseScore + Math.random() * variance)));
+        const effectiveness = Math.max(0, Math.min(10, Math.floor(baseScore + Math.random() * variance)));
+        const clarity = Math.max(0, Math.min(10, Math.floor(baseScore + Math.random() * variance)));
+        const originality = Math.max(0, Math.min(10, Math.floor(baseScore + Math.random() * variance)));
+
+        const total = creativity + effectiveness + clarity + originality;
+
+        const mockScore: ParticipantScore = {
+          participant_id: 'demo',
+          creativity_score: creativity,
+          effectiveness_score: effectiveness,
+          clarity_score: clarity,
+          originality_score: originality,
+          total_score: total,
+          feedback: isWinner
+            ? `Excellent work! Your prompt demonstrated strong creativity and clear structure. The approach was both effective and original, showing deep understanding of the topic. Keep up the great work!`
+            : `Good effort! Your prompt showed promise with some creative elements. To improve, focus on making your prompts more specific and structured. Consider adding more context to enhance effectiveness.`
+        };
+
+        setUserScore(mockScore);
+        console.log('Demo score generated:', mockScore);
+      }
     };
-    
-    fetchWinnerUsername();
-  }, [gameResults.winner_id]);
+
+    fetchData();
+  }, [gameResults.winner_id, currentUserId, isWinner]);
 
   // --- AUDIO ---
   const [isAudioLoading, setIsAudioLoading] = useState(false);
@@ -114,7 +157,20 @@ export default function GameResults({ gameResults, currentUserId }: { gameResult
             </div>
           </>
         )}
-        
+
+        {userScore && (
+          <div className="my-8">
+            <ScoreBreakdown
+              creativity_score={userScore.creativity_score}
+              effectiveness_score={userScore.effectiveness_score}
+              clarity_score={userScore.clarity_score}
+              originality_score={userScore.originality_score}
+              total_score={userScore.total_score}
+              feedback={userScore.feedback}
+            />
+          </div>
+        )}
+
         {gameResults.judge_reasoning && (
           <>
             <div>
