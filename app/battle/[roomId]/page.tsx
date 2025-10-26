@@ -9,7 +9,8 @@ import { Clock, User, Send, Zap, Target, Brain, X, BookOpen } from "lucide-react
 import { use } from "react"
 import { Navigation } from "@/components/navigation"
 import { DefaultChatTransport } from "ai"
-import { useChat } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react"
+import { GameResults as GameResultsComponent } from "@/components/GameResults";
 
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -58,70 +59,6 @@ function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipa
   );
 }
 
-function GameResults({ gameResults, currentUserId }: { gameResults: any; currentUserId: string | null }) {
-  const router = useRouter();
-  const [winnerUsername, setWinnerUsername] = useState<string | null>(null);
-  const isWinner = currentUserId && gameResults.winner_id === currentUserId;
-  
-  // Fetch winner's username
-  useEffect(() => {
-    const fetchWinnerUsername = async () => {
-      if (gameResults.winner_id) {
-        const supabase = createClient();
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', gameResults.winner_id)
-          .single();
-        
-        if (profile) {
-          setWinnerUsername(profile.username);
-        }
-      }
-    };
-    
-    fetchWinnerUsername();
-  }, [gameResults.winner_id]);
-  
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <div className="text-center max-w-2xl mx-auto">
-        {gameResults.winner_id && (
-          <div className="mb-8">
-            {isWinner ? (
-              <h1 className="text-5xl font-bold mb-6 text-green-400">🎉 You Won!</h1>
-            ) : (
-              <h1 className="text-5xl font-bold mb-6">You lost...</h1>
-            )}
-
-            <p className="text-xl text-gray-300 mb-6">
-              <strong>{winnerUsername ? `${winnerUsername}` : `Player ID: ${gameResults.winner_id}`}</strong> was the winner!
-            </p>
-          </div>
-        )}
-        
-        {gameResults.judge_reasoning && (
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold mb-4">Judge's Reasoning</h3>
-            <div className="bg-gray-800 p-6 rounded-lg text-left">
-              <MarkdownComponent content={gameResults.judge_reasoning} />
-            </div>
-          </div>
-        )}
-        
-        <div className="flex gap-4 justify-center">
-          <Button 
-            onClick={() => router.push('/')}
-            variant="outline"
-            className="px-8 py-3"
-          >
-            Back to Home
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function BattleArena({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = use(params)
@@ -202,10 +139,57 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       .from('game_results')
       .select('*')
       .eq('room_id', roomId)
-      .single();
-      
+      .maybeSingle();
+
     if (!error && results) {
-      setGameResults(results);
+      // Try to fetch participant scores with participant details
+      // This will fail gracefully if the table doesn't exist yet
+      try {
+        const { data: scores, error: scoresError } = await supabase
+          .from('participant_scores')
+          .select(`
+            *,
+            game_participants!inner(
+              user_id,
+              profiles!inner(username)
+            )
+          `)
+          .eq('result_id', results.id);
+
+        if (!scoresError && scores && scores.length > 0) {
+          // Map scores to include user info
+          const scoresWithUserInfo = scores.map((score: any) => ({
+            participant_id: score.participant_id,
+            creativity_score: score.creativity_score,
+            effectiveness_score: score.effectiveness_score,
+            clarity_score: score.clarity_score,
+            originality_score: score.originality_score,
+            total_score: score.total_score,
+            feedback: score.feedback,
+            user_id: score.game_participants.user_id,
+            username: score.game_participants.profiles.username,
+          }));
+
+          setGameResults({
+            ...results,
+            scores: scoresWithUserInfo,
+          });
+        } else {
+          // Fallback: set results without scores for backward compatibility
+          setGameResults({
+            ...results,
+            scores: [],
+          });
+        }
+      } catch (err) {
+        console.warn('participant_scores table may not exist yet. Using basic results.', err);
+        // Fallback: set results without scores
+        setGameResults({
+          ...results,
+          scores: [],
+        });
+      }
+
       setHasGameResults(true);
     } else if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
       console.error('Error checking game results:', error);
@@ -371,7 +355,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       <Navigation />
 
       {hasGameResults ? (
-        <GameResults gameResults={gameResults} currentUserId={currentUserId} />
+        <GameResultsComponent gameResults={gameResults} currentUserId={currentUserId || ""} />
       ) : isAwaitingJudging ? (
         <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} />
       ) : (

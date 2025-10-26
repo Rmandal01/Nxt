@@ -99,23 +99,27 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 ---
 ## Step 4: Deploy Edge Function to Supabase
-First log in to Supabase through the CLI:
+
+### 4.1 Log in to Supabase through the CLI
 ```bash
 npx supabase login
 ```
 You should get either a browser link or a URL where you can enter a verification code.
 
-Then deploy the ai-judge function (this is the backend function that will be called when everyone's submitted their prompts). Select the Supabase project that you're using for this repo.
+### 4.2 Deploy the ai-judge function
+This is the backend function that will be called when everyone's submitted their prompts. Select the Supabase project that you're using for this repo.
 ```bash
 npx supabase functions deploy ai-judge
 ```
 
-Then, import the secrets from your .env file onto the server.
+### 4.3 Import the secrets from your .env file onto the server.
 ```bash
 npx supabase secrets set --env-file .env.local
 ```
 
-Then, copy the contents of the file `supabase/judge_func_example.sql` into the Supabase SQL editor. This is so when everyone's submitted a prompt, it will trigger the edge function. **Make sure to replace <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.**
+### 4.4 Add SQL trigger
+Copy the contents of the file `supabase/judge_func_example.sql` into the Supabase SQL editor. This is so when everyone's submitted a prompt, it will trigger the edge function.
+**Make sure to replace the edge function URL in the file with the one in Supabase dashboard > Edge Functions > copy your edge function URL in the table, <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.**
 
 
 ## Step 5: Install Dependencies
