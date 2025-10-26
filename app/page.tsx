@@ -204,8 +204,7 @@ export default function HomePage() {
             <Card className="p-8 glass-effect border-primary/20 animate-slide-up" style={{ animationDelay: "0.2s" }}>
               <div className="space-y-6">
                 <div className="text-center space-y-2">
-                  <h3 className="text-2xl font-bold">Enter the Arena</h3>
-                  <p className="text-muted-foreground">Start your journey to prompt mastery</p>
+                  <h3 className="text-2xl font-bold">Start Playing</h3>
                 </div>
 
                 {/* Tab Navigation */}
