@@ -155,16 +155,7 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
               <p className="text-xl text-muted-foreground">
                 {displayReasoning}
               </p>
-              {isOldMockResult && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <p className="text-sm text-yellow-200">
-                    ⚠️ This is an old result from before the AI judging system
-                    was deployed.
-                    <strong> Start a new game</strong> to experience the full
-                    judging criteria system with detailed scores!
-                  </p>
-                </div>
-              )}
+
               <Button
                 onClick={handlePlayReasoning}
                 disabled={isAudioLoading}
