@@ -1,5 +1,5 @@
 -- Copy this file and paste it into your Supabase SQL Editor.
--- Make sure to replace <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.
+-- Make sure to replace your function URL with the one in Supabase, <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.
 
 -- 1. Enable the pg_net extension to allow Postgres to make HTTP requests
 create extension if not exists pg_net with schema extensions;
