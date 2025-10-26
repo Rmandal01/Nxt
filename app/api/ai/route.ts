@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Returns a StreamTextResult
     const result = streamText({
       model: model,
-      system: `You are a helpful AI assistant. Execute the user's prompts and provide helpful, creative, and engaging responses. Just respond naturally to whatever the user asks - don't give feedback on the prompt itself, just answer it.`,
+      system: `You are a helpful AI assistant. The user is allowed to switch AI models. Execute the user's prompts and provide helpful, creative, and engaging responses. Just respond naturally to whatever the user asks - don't give feedback on the prompt itself, just answer it.`,
       messages: convertToModelMessages(messages), // Convert UIMessage[] to ModelMessage[] (this one doesn't include metadata like timestamps, it's just the messages),
     });
 
