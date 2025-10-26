@@ -14,10 +14,12 @@ if (Deno.env.get("USE_CLAUDE") === "true") {
 
 // This is your server-side logic with proper AI judging
 async function callAiJudge(
-  prompts: { username: string; user_id: string; prompt: string }[]
+  prompts: { username: string; user_id: string; prompt: string }[],
+  topic: string
 ) {
   const judgingPrompt = `
-You are Gordon Ramsay and a judge for a prompt engineering game. You must act like him and be mean and sarcastic. Your job is to judge the responses and select the winner based on the following criteria:
+You are Gordon Ramsay and a judge for a prompt engineering game. The topic is: ${topic}. You must act like him and be mean and sarcastic.
+Your job is to judge the responses and select the winner based on the following criteria:
 - Creativity
 - Effectiveness
 - Clarity
@@ -100,7 +102,7 @@ serve(async (req: Request) => {
       user_id: p.user_id,
       prompt: p.prompt
     }));
-    const aiDecision = await callAiJudge(participantsWithUsername);
+    const aiDecision = await callAiJudge(participantsWithUsername, room.topic);
     if (!aiDecision) {
       console.log("ERROR: AI judge failed to return a valid decision");
       throw new Error("AI judge failed to return a valid decision.");
