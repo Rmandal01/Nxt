@@ -53,16 +53,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [prompt, setPrompt] = useState("")
   const [timeLeft, setTimeLeft] = useState(180) // 3 minutes
 
-  const [atBottom, setAtBottom] = useState<boolean>(true);
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const { messages, sendMessage } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/ai",
-    }),
-  });
-
   const [isFinalSubmitting, setIsFinalSubmitting] = useState<boolean>(false);
   const [isAwaitingJudging, setIsAwaitingJudging] = useState<boolean>(false);
   const [allParticipantsSubmitted, setAllParticipantsSubmitted] = useState<boolean>(false);
@@ -81,15 +71,24 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [showResearchModal, setShowResearchModal] = useState(false);
   const [researchResults, setResearchResults] = useState("");
 
+  const [atBottom, setAtBottom] = useState<boolean>(true);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Model selection state
-  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash-exp");
+  const [selectedModel, setSelectedModel] = useState("gemini");
+
+  const { messages, sendMessage } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/ai",
+    }),
+  });
 
   // Available models
   const availableModels = [
-    { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "Google" },
-    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
-    { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", provider: "Anthropic"},
-    { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI"},
+    { id: "gemini", name: "Gemini 2.0 Flash", provider: "Google" },
+    { id: "claude", name: "Claude Sonnet 4.5", provider: "Anthropic"},
+    { id: "gpt", name: "GPT-4o Mini", provider: "OpenAI"},
   ];
 
   // Mock data - replace with real backend data
@@ -108,7 +107,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
         }
       }
     };
-      fetchParticipant();
+    fetchParticipant();
   }, [roomId]);
 
   // Function to check if all participants have submitted and trigger judging
@@ -215,10 +214,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    // Store selected model in localStorage so API can access it
-    localStorage.setItem('selectedModel', selectedModel);
-
-    sendMessage({ text: prompt });
+    sendMessage({ text: prompt }, { body: { model: selectedModel } });
     setPrompt("");
 
     if (messagesRef.current) {
