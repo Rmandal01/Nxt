@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Trophy, Star, Lightbulb, Target, Sparkles } from "lucide-react"
+import { Trophy, Star, Lightbulb, Target, Sparkles, Brain } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 
@@ -175,8 +175,15 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
 
                     {/* Feedback */}
                     <div className="pt-4 border-t border-primary/20">
-                      <h4 className="text-sm font-semibold mb-2">Judge's Feedback</h4>
-                      <p className="text-sm text-muted-foreground">{score.feedback}</p>
+                      <div className="flex items-start gap-2 mb-2">
+                        <Brain className="w-4 h-4 mt-1 text-primary flex-shrink-0" />
+                        <h4 className="text-sm font-semibold">
+                          {isWinnerCard ? "Why You Won" : "Judge's Feedback"}
+                        </h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {score.feedback}
+                      </p>
                     </div>
                   </div>
                 </Card>

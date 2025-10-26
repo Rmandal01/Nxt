@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       effectiveness_score: z.number().min(0).max(10).describe('How effective would this prompt be at achieving the goal? (0-10)'),
       clarity_score: z.number().min(0).max(10).describe('How clear and well-structured is this prompt? (0-10)'),
       originality_score: z.number().min(0).max(10).describe('How original and unique is this approach? (0-10)'),
-      feedback: z.string().describe('Brief constructive feedback (2-3 sentences)'),
+      feedback: z.string().describe('Detailed constructive feedback explaining why they scored the way they did, highlighting strengths and areas for improvement (3-4 sentences)'),
     })
 
     const judgingSchema = z.object({
@@ -118,11 +118,15 @@ ${participantPrompts}
 
 Please provide:
 1. Individual scores for each participant across all criteria
-2. Brief constructive feedback for each participant (2-3 sentences)
+2. Detailed constructive feedback for each participant (3-4 sentences) that:
+   - Explains WHY they received their scores
+   - Highlights their strengths
+   - Identifies specific areas for improvement
+   - For the winner, explain what made their prompt stand out
 3. The winner (participant with highest total score)
-4. Overall reasoning for selecting the winner (3-4 sentences)
+4. Overall reasoning for selecting the winner that clearly explains which criteria they excelled at
 
-Be fair, objective, and consider all criteria equally. The winner should have the highest combined score across all categories.`
+Be fair, objective, and thorough in your evaluation. The winner should have the highest combined score across all categories.`
 
     // Use AI to judge the prompts
     const { object: judgingResult } = await generateObject({
