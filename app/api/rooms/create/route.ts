@@ -6,6 +6,15 @@ function generateRoomCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
+const TOPICS = [
+  "Create a marketing email for a sustainable coffee brand",
+  "Write a poem about coding",
+  "Write a story about a dog",
+  "Write a story about a cat",
+  "Make a recipe for the weirdest meal of all time",
+  "Write a song about a unicorn",
+];
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient()
@@ -58,6 +67,7 @@ export async function POST(request: Request) {
         room_code: roomCode,
         host_id: user.id,
         status: 'waiting',
+        topic: TOPICS[Math.floor(Math.random() * TOPICS.length)],
       })
       .select()
       .single()

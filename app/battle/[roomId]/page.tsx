@@ -16,6 +16,7 @@ import remarkBreaks from "remark-breaks";
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import type { RealtimeChannel } from "@supabase/supabase-js"
+import { notFound } from "next/navigation"
 
 function MarkdownComponent({ content }: { content: string }) {
   return (
@@ -86,16 +87,25 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [showResearchModal, setShowResearchModal] = useState(false);
   const [researchResults, setResearchResults] = useState("");
 
-  // Mock data - replace with real backend data
-  const battleTopic = "Create a marketing email for a sustainable coffee brand"
+  const [topic, setTopic] = useState<string>("");
 
-  // check in supabase db if you already did submit prompt
   useEffect(() => {
     const fetchParticipant = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: participant } = await supabase.from('game_participants').select('*').eq('user_id', user.id).eq('room_id', roomId).single();
+
+        // get topic from roomId
+        const { data: room } = await supabase.from('game_rooms').select('topic').eq('id', roomId).single();
+        if (room && room.topic) {
+          setTopic(room.topic);
+        } else {
+          // What are you doing here?
+          return notFound();
+        }
+
+        // check in supabase db if you already did submit prompt
         if (participant && participant.prompt !== null) {
           setIsAwaitingJudging(true);
         }

@@ -2,8 +2,6 @@
 CREATE TABLE profiles (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL,
-  wins INTEGER DEFAULT 0,
-  losses INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -13,6 +11,7 @@ CREATE TABLE game_rooms (
   room_code TEXT UNIQUE NOT NULL,
   host_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'waiting', -- waiting, countdown, playing, finished
+  topic TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   started_at TIMESTAMP WITH TIME ZONE,
   finished_at TIMESTAMP WITH TIME ZONE
