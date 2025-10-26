@@ -1,3 +1,6 @@
+-- Copy this file and paste it into your Supabase SQL Editor.
+-- Make sure to replace <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.
+
 -- 1. Enable the pg_net extension to allow Postgres to make HTTP requests
 create extension if not exists pg_net with schema extensions;
 
@@ -8,7 +11,7 @@ declare
   room_status text;
   total_participants int;
   submitted_participants int;
-  edge_function_url text := 'https://wkhnpejzasekqvdtydiv.supabase.co/functions/v1/ai-judge'; -- ⚠️ Paste your function URL here
+  edge_function_url text := 'https://<your-project-id>.supabase.co/functions/v1/ai-judge'; -- ⚠️ Paste your function URL here
 begin
   -- Get the current status of the room
   select status into room_status
@@ -40,7 +43,7 @@ begin
         body := jsonb_build_object('room_id', new.room_id),
         headers := jsonb_build_object(
           'Content-Type', 'application/json',
-          'Authorization', 'Bearer ' || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndraG5wZWp6YXNla3F2ZHR5ZGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEzNDIyNDUsImV4cCI6MjA3NjkxODI0NX0.M8YQJLyizVBKgPVjQb1fligBcEzsdiGWsA_sZ0FHfq4' -- ⚠️ Paste your anon key
+          'Authorization', 'Bearer ' || '<your-anon-key>' -- ⚠️ Paste your anon key
         )
       );
     end if;
