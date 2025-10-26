@@ -63,6 +63,8 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   // Game results state
   const [gameResults, setGameResults] = useState<any>(null);
   const [hasGameResults, setHasGameResults] = useState<boolean>(false);
+
+  const [topic, setTopic] = useState<string>("");
   
   // Current user state
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -91,9 +93,6 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     { id: "claude", name: "Claude Sonnet 4.5", provider: "Anthropic"},
     { id: "gpt", name: "GPT-4o Mini", provider: "OpenAI"},
   ];
-
-  // Mock data - replace with real backend data
-  const battleTopic = "Create a marketing email for a sustainable coffee brand"
 
   useEffect(() => {
     const fetchParticipant = async () => {
@@ -267,7 +266,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: battleTopic }),
+        body: JSON.stringify({ query: topic }),
       });
 
       if (!response.ok) {
@@ -331,7 +330,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                     <Target className="w-5 h-5 text-primary" />
                     <h3 className="font-semibold">Topic</h3>
                   </div>
-                  <p className="text-2xl text-balance leading-relaxed">{battleTopic}</p>
+                  <p className="text-2xl text-balance leading-relaxed">{topic}</p>
                   <Button
                     onClick={handleResearch}
                     disabled={isResearching}
