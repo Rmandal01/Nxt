@@ -6,7 +6,7 @@ import { z } from "zod";
 
 // This is your server-side logic
 async function callAiJudge(
-  prompts: { user_id: string; prompt: string }[]
+  prompts: { username: string; user_id: string; prompt: string }[]
 ) {
   const judgingPrompt = `
     You are the judge for a prompt engineering game. Your job is to judge the responses and select the winner based on the following criteria:
@@ -14,12 +14,11 @@ async function callAiJudge(
     - Effectiveness
     - Clarity
     - Originality
+    Be sure to specify in detail why you chose the winner. Please respond *only* with a JSON object containing the "winner_id" and "reasoning".
+    Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative because ..."}
 
     Here are the submissions from the players:
-    ${prompts.map((p) => `User ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n")}
-
-    Please respond *only* with a JSON object containing the "winner_id" and "reasoning".
-    Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative."}
+    ${prompts.map((p) => `Username: ${p.username}\nUser ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n\n")}
   `;
 
   // --- 🚀 CALL YOUR AI (e.g., Google's Gemini API) ---
@@ -55,7 +54,11 @@ serve(async (req: Request) => {
     console.log("Fetching participants for room_id:", room_id);
     const { data: participants, error: pError } = await supabaseAdmin
       .from("game_participants")
-      .select("user_id, prompt")
+      .select(`
+        user_id, 
+        prompt,
+        profiles!inner(username)
+      `)
       .eq("room_id", room_id)
       .not("prompt", "is", null); // Only get those who submitted
 
@@ -71,7 +74,12 @@ serve(async (req: Request) => {
 
     // 2. Call the AI judge
     console.log("Calling AI judge with participants:", participants);
-    const aiDecision = await callAiJudge(participants);
+    const participantsWithUsername = participants.map((p: any) => ({
+      username: p.profiles.username,
+      user_id: p.user_id,
+      prompt: p.prompt
+    }));
+    const aiDecision = await callAiJudge(participantsWithUsername);
     if (!aiDecision) {
       console.log("ERROR: AI judge failed to return a valid decision");
       throw new Error("AI judge failed to return a valid decision.");
