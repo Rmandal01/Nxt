@@ -109,7 +109,7 @@ export default function GameResults({ gameResults, currentUserId }: { gameResult
               )}
 
               <p className="text-xl text-gray-300 mb-6">
-                <strong>{winnerUsername ? `${winnerUsername}` : `Player ID: ${gameResults.winner_id}`}</strong> is the winner!
+                <strong>{winnerUsername}</strong> is the winner!
               </p>
             </div>
           </>
