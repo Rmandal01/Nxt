@@ -139,41 +139,55 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       .from('game_results')
       .select('*')
       .eq('room_id', roomId)
-      .single();
+      .maybeSingle();
 
     if (!error && results) {
-      // Fetch participant scores with participant details
-      const { data: scores, error: scoresError } = await supabase
-        .from('participant_scores')
-        .select(`
-          *,
-          game_participants!inner(
-            user_id,
-            profiles!inner(username)
-          )
-        `)
-        .eq('result_id', results.id);
+      // Try to fetch participant scores with participant details
+      // This will fail gracefully if the table doesn't exist yet
+      try {
+        const { data: scores, error: scoresError } = await supabase
+          .from('participant_scores')
+          .select(`
+            *,
+            game_participants!inner(
+              user_id,
+              profiles!inner(username)
+            )
+          `)
+          .eq('result_id', results.id);
 
-      if (!scoresError && scores) {
-        // Map scores to include user info
-        const scoresWithUserInfo = scores.map((score: any) => ({
-          participant_id: score.participant_id,
-          creativity_score: score.creativity_score,
-          effectiveness_score: score.effectiveness_score,
-          clarity_score: score.clarity_score,
-          originality_score: score.originality_score,
-          total_score: score.total_score,
-          feedback: score.feedback,
-          user_id: score.game_participants.user_id,
-          username: score.game_participants.profiles.username,
-        }));
+        if (!scoresError && scores && scores.length > 0) {
+          // Map scores to include user info
+          const scoresWithUserInfo = scores.map((score: any) => ({
+            participant_id: score.participant_id,
+            creativity_score: score.creativity_score,
+            effectiveness_score: score.effectiveness_score,
+            clarity_score: score.clarity_score,
+            originality_score: score.originality_score,
+            total_score: score.total_score,
+            feedback: score.feedback,
+            user_id: score.game_participants.user_id,
+            username: score.game_participants.profiles.username,
+          }));
 
+          setGameResults({
+            ...results,
+            scores: scoresWithUserInfo,
+          });
+        } else {
+          // Fallback: set results without scores for backward compatibility
+          setGameResults({
+            ...results,
+            scores: [],
+          });
+        }
+      } catch (err) {
+        console.warn('participant_scores table may not exist yet. Using basic results.', err);
+        // Fallback: set results without scores
         setGameResults({
           ...results,
-          scores: scoresWithUserInfo,
+          scores: [],
         });
-      } else {
-        setGameResults(results);
       }
 
       setHasGameResults(true);

@@ -32,8 +32,10 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
   const router = useRouter()
   const isWinner = gameResults.winner_id === currentUserId
 
-  // Sort scores by total score (highest first)
-  const sortedScores = [...gameResults.scores].sort((a, b) => b.total_score - a.total_score)
+  // Sort scores by total score (highest first), handle undefined/null scores
+  const sortedScores = gameResults.scores
+    ? [...gameResults.scores].sort((a, b) => b.total_score - a.total_score)
+    : []
 
   const getCriteriaIcon = (criteria: string) => {
     switch (criteria) {
@@ -77,10 +79,11 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
           </Card>
 
           {/* Participant Scores */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Detailed Scores</h2>
+          {sortedScores.length > 0 ? (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold">Detailed Scores</h2>
 
-            {sortedScores.map((score, index) => {
+              {sortedScores.map((score, index) => {
               const isCurrentUser = score.user_id === currentUserId
               const isWinnerCard = score.user_id === gameResults.winner_id
 
@@ -179,7 +182,16 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
                 </Card>
               )
             })}
-          </div>
+            </div>
+          ) : (
+            <Card className="p-8 glass-effect border-primary/20">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  Detailed scoring is not available yet. Please run the database migration to enable the new judging criteria system.
+                </p>
+              </div>
+            </Card>
+          )}
 
           {/* Actions */}
           <div className="flex gap-4 justify-center">
