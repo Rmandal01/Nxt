@@ -185,10 +185,15 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
             </div>
           ) : (
             <Card className="p-8 glass-effect border-primary/20">
-              <div className="text-center">
-                <p className="text-muted-foreground">
-                  Detailed scoring is not available yet. Please run the database migration to enable the new judging criteria system.
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-semibold">AI Judging Complete</h3>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  The winner was selected by our AI judge based on multiple criteria including creativity, effectiveness, clarity, and originality.
+                  To see the detailed score breakdown for each criterion, please run the database migration to enable the enhanced judging system.
                 </p>
+                <div className="pt-4 text-sm text-muted-foreground italic">
+                  See the migration file at: <code className="bg-muted px-2 py-1 rounded">supabase/migrations/add_judging_criteria.sql</code>
+                </div>
               </div>
             </Card>
           )}
