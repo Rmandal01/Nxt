@@ -4,7 +4,7 @@ import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-// This is your server-side logic
+// This is your server-side logic with proper AI judging
 async function callAiJudge(
   prompts: { username: string; user_id: string; prompt: string }[]
 ) {
@@ -50,7 +50,20 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Get all submissions for the room
+    // 1. Get room details for topic
+    console.log("Fetching room details for room_id:", room_id);
+    const { data: room, error: roomFetchError } = await supabaseAdmin
+      .from("game_rooms")
+      .select("*")
+      .eq("id", room_id)
+      .single();
+
+    if (roomFetchError || !room) {
+      console.log("ERROR: Failed to fetch room:", roomFetchError);
+      throw roomFetchError || new Error("Room not found");
+    }
+
+    // 2. Get all participants with their full details
     console.log("Fetching participants for room_id:", room_id);
     const { data: participants, error: pError } = await supabaseAdmin
       .from("game_participants")
@@ -72,7 +85,7 @@ serve(async (req: Request) => {
     }
     console.log("Found participants:", participants.length);
 
-    // 2. Call the AI judge
+    // 3. Call the AI judge with topic
     console.log("Calling AI judge with participants:", participants);
     const participantsWithUsername = participants.map((p: any) => ({
       username: p.profiles.username,
@@ -86,25 +99,50 @@ serve(async (req: Request) => {
     }
     console.log("AI decision:", aiDecision);
 
-    // 3. Insert the winner into game_results
+    // 4. Insert the winner into game_results
     console.log("Inserting winner into game_results:", {
       room_id: room_id,
       winner_id: aiDecision.winner_id,
       judge_reasoning: aiDecision.reasoning,
     });
-    const { error: resultError } = await supabaseAdmin
+    const { data: gameResult, error: resultError } = await supabaseAdmin
       .from("game_results")
       .insert({
         room_id: room_id,
         winner_id: aiDecision.winner_id,
         judge_reasoning: aiDecision.reasoning,
-      });
+      })
+      .select()
+      .single();
 
-    if (resultError) {
+    if (resultError || !gameResult) {
       console.log("ERROR: Failed to insert game result:", resultError);
       throw resultError;
     }
-    console.log("Successfully inserted game result");
+    console.log("Successfully inserted game result, ID:", gameResult.id);
+
+    // 6. Update winner/loser counts
+    console.log("Updating winner profile...");
+    const { error: winError } = await supabaseAdmin.rpc('increment_wins', {
+      user_id: aiDecision.winner_id
+    });
+    if (winError) {
+      console.log("WARN: Failed to increment wins:", winError);
+    }
+
+    const loserIds = participants
+      .filter((p: any) => p.user_id !== aiDecision.winner_id)
+      .map((p: any) => p.user_id);
+
+    for (const loserId of loserIds) {
+      const { error: lossError } = await supabaseAdmin.rpc('increment_losses', {
+        user_id: loserId
+      });
+      if (lossError) {
+        console.log("WARN: Failed to increment losses for", loserId, ":", lossError);
+      }
+    }
+    console.log("Successfully updated participant scores");
 
     // 5. Mark the game room as finished
     console.log("Marking game room as finished for room_id:", room_id);
