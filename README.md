@@ -119,7 +119,7 @@ npx supabase secrets set --env-file .env.local
 
 ### 4.4 Add SQL trigger
 Copy the contents of the file `supabase/judge_func_example.sql` into the Supabase SQL editor. This is so when everyone's submitted a prompt, it will trigger the edge function.
-**Make sure to replace the edge function URL in the file with the one in Supabase dashboard > Edge Functions > copy your edge function URL in the table, <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.**
+**Make sure to replace the edge function URL in the file with the one in Supabase dashboard > Edge Functions > copy your edge function URL in the table, and replace <your-anon-key> with your actual anon key.**
 
 
 ## Step 5: Install Dependencies

@@ -84,6 +84,15 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
     ? [...gameResults.scores].sort((a, b) => b.total_score - a.total_score)
     : [];
 
+  // Detect if this is an old mock result
+  const isOldMockResult =
+    gameResults.judge_reasoning?.includes("randomly selected");
+
+  // Override reasoning for old mock results
+  const displayReasoning = isOldMockResult
+    ? "This game used the old judging system. Please start a new game to see the enhanced AI judging with detailed criteria scores!"
+    : gameResults.judge_reasoning;
+
   const getCriteriaIcon = (criteria: string) => {
     switch (criteria) {
       case "creativity":
@@ -144,8 +153,18 @@ export function GameResults({ gameResults, currentUserId }: GameResultsProps) {
                 {isWinner ? "🎉 You Won! 🎉" : "Battle Complete!"}
               </h1>
               <p className="text-xl text-muted-foreground">
-                {gameResults.judge_reasoning}
+                {displayReasoning}
               </p>
+              {isOldMockResult && (
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <p className="text-sm text-yellow-200">
+                    ⚠️ This is an old result from before the AI judging system
+                    was deployed.
+                    <strong> Start a new game</strong> to experience the full
+                    judging criteria system with detailed scores!
+                  </p>
+                </div>
+              )}
               <Button
                 onClick={handlePlayReasoning}
                 disabled={isAudioLoading}
