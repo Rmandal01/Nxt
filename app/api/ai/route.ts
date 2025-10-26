@@ -1,5 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
 import { convertToModelMessages, streamText } from "ai";
 
 export async function POST(request: Request) {
@@ -7,11 +8,53 @@ export async function POST(request: Request) {
     const body = await request.json();
     const messages = body.messages;
 
+    // Get model from request body, headers, or default
+    const selectedModelId = body.model ||
+                           request.headers.get('x-model-id') ||
+                           "gemini-2.0-flash-exp";
+
+    // Map model IDs to actual model instances
     let model;
-    if (process.env.USE_CLAUDE === "true") {
-      model = anthropic("claude-sonnet-4-5-20250929");
-    } else {
-      model = google("gemini-2.0-flash-exp");
+    switch (selectedModelId) {
+      // Google Gemini models
+      case "gemini-2.0-flash-exp":
+        model = google("gemini-2.0-flash-exp");
+        break;
+      case "gemini-1.5-pro":
+        model = google("gemini-1.5-pro");
+        break;
+      case "gemini-1.5-flash":
+        model = google("gemini-1.5-flash");
+        break;
+
+      // Anthropic Claude models
+      case "claude-3-5-sonnet-20241022":
+        model = anthropic("claude-3-5-sonnet-20241022");
+        break;
+      case "claude-3-5-haiku-20241022":
+        model = anthropic("claude-3-5-haiku-20241022");
+        break;
+      case "claude-3-opus-20240229":
+        model = anthropic("claude-3-opus-20240229");
+        break;
+
+      // OpenAI models
+      case "gpt-4o":
+        model = openai("gpt-4o");
+        break;
+      case "gpt-4o-mini":
+        model = openai("gpt-4o-mini");
+        break;
+      case "gpt-4-turbo":
+        model = openai("gpt-4-turbo");
+        break;
+      case "gpt-3.5-turbo":
+        model = openai("gpt-3.5-turbo");
+        break;
+
+      default:
+        console.log(`Unknown model: ${selectedModelId}, falling back to Gemini 2.0 Flash`);
+        model = google("gemini-2.0-flash-exp");
     }
 
     // Returns a StreamTextResult
