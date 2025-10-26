@@ -118,13 +118,13 @@ npx supabase secrets set --env-file .env.local
 Then, copy the contents of the file `supabase/judge_func_example.sql` into the Supabase SQL editor. This is so when everyone's submitted a prompt, it will trigger the edge function. **Make sure to replace <your-project-id> with your actual project ID, and replace <your-anon-key> with your actual anon key.**
 
 
-## Step 4: Install Dependencies
+## Step 5: Install Dependencies
 
 ```bash
 npm install
 ```
 
-## Step 5: Run the Development Server
+## Step 6: Run the Development Server
 
 ```bash
 npm run dev
@@ -134,7 +134,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Step 6: Test the Game
+## Step 7: Test the Game
 
 ### Testing Requires Two Players
 
