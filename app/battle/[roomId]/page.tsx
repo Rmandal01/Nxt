@@ -58,6 +58,71 @@ function AwaitingJudging({ allParticipantsSubmitted, isJudging }: { allParticipa
   );
 }
 
+function GameResults({ gameResults, currentUserId }: { gameResults: any; currentUserId: string | null }) {
+  const router = useRouter();
+  const [winnerUsername, setWinnerUsername] = useState<string | null>(null);
+  const isWinner = currentUserId && gameResults.winner_id === currentUserId;
+  
+  // Fetch winner's username
+  useEffect(() => {
+    const fetchWinnerUsername = async () => {
+      if (gameResults.winner_id) {
+        const supabase = createClient();
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', gameResults.winner_id)
+          .single();
+        
+        if (profile) {
+          setWinnerUsername(profile.username);
+        }
+      }
+    };
+    
+    fetchWinnerUsername();
+  }, [gameResults.winner_id]);
+  
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="text-center max-w-2xl mx-auto">
+        {gameResults.winner_id && (
+          <div className="mb-8">
+            {isWinner ? (
+              <h1 className="text-5xl font-bold mb-6 text-green-400">🎉 You Won!</h1>
+            ) : (
+              <h1 className="text-5xl font-bold mb-6">You lost...</h1>
+            )}
+
+            <p className="text-xl text-gray-300 mb-6">
+              <strong>{winnerUsername ? `${winnerUsername}` : `Player ID: ${gameResults.winner_id}`}</strong> was the winner!
+            </p>
+          </div>
+        )}
+        
+        {gameResults.judge_reasoning && (
+          <div className="mb-8">
+            <h3 className="text-2xl font-semibold mb-4">Judge's Reasoning</h3>
+            <div className="bg-gray-800 p-6 rounded-lg text-left">
+              <MarkdownComponent content={gameResults.judge_reasoning} />
+            </div>
+          </div>
+        )}
+        
+        <div className="flex gap-4 justify-center">
+          <Button 
+            onClick={() => router.push('/')}
+            variant="outline"
+            className="px-8 py-3"
+          >
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BattleArena({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = use(params)
   const router = useRouter();
@@ -80,6 +145,13 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [allParticipantsSubmitted, setAllParticipantsSubmitted] = useState<boolean>(false);
   const [isJudging, setIsJudging] = useState<boolean>(false);
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+  
+  // Game results state
+  const [gameResults, setGameResults] = useState<any>(null);
+  const [hasGameResults, setHasGameResults] = useState<boolean>(false);
+  
+  // Current user state
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Deep research state
   const [isResearching, setIsResearching] = useState(false);
@@ -95,13 +167,14 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setCurrentUserId(user.id);
         const { data: participant } = await supabase.from('game_participants').select('*').eq('user_id', user.id).eq('room_id', roomId).single();
         if (participant && participant.prompt !== null) {
           setIsAwaitingJudging(true);
         }
       }
     };
-    fetchParticipant();
+      fetchParticipant();
   }, [roomId]);
 
   // Function to check if all participants have submitted and trigger judging
@@ -118,44 +191,35 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
       
       if (allSubmitted && !isJudging) {
         setIsJudging(true);
-
-        /*
-        // Trigger judging process
-        try {
-          const response = await fetch('/api/judge', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ roomId }),
-          });
-          
-          if (response.ok) {
-            // Small delay to ensure the judging process completes
-            setTimeout(() => {
-              router.push(`/results/${roomId}`);
-            }, 2000);
-          } else {
-            const errorData = await response.json();
-            console.error('Error triggering judging:', errorData);
-            setIsJudging(false); // Reset judging state on error
-          }
-        } catch (error) {
-          console.error('Error triggering judging:', error);
-          setIsJudging(false); // Reset judging state on error
-        }
-        */
       }
     }
   }, [roomId, isJudging, router]);
+
+  // Function to check for game results
+  const checkGameResults = useCallback(async () => {
+    const supabase = createClient();
+    const { data: results, error } = await supabase
+      .from('game_results')
+      .select('*')
+      .eq('room_id', roomId)
+      .single();
+      
+    if (!error && results) {
+      setGameResults(results);
+      setHasGameResults(true);
+    } else if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+      console.error('Error checking game results:', error);
+    }
+  }, [roomId]);
 
   // Set up realtime subscription and initial check
   useEffect(() => {
     const supabase = createClient();
     let channel: any;
 
-    // Initial check
+    // Initial checks
     checkAllParticipantsSubmitted();
+    checkGameResults();
 
     // Set up realtime subscription to listen for participant changes
     channel = supabase
@@ -173,6 +237,19 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
           checkAllParticipantsSubmitted();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_results',
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          // Refetch game results when changes occur
+          checkGameResults();
+        }
+      )
       .subscribe();
 
     setRealtimeChannel(channel);
@@ -182,7 +259,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
         supabase.removeChannel(channel);
       }
     };
-  }, [roomId, checkAllParticipantsSubmitted]);
+  }, [roomId, checkAllParticipantsSubmitted, checkGameResults]);
 
   /*
   useEffect(() => {
@@ -293,7 +370,11 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
     <>
       <Navigation />
 
-      {isAwaitingJudging ? <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} /> :
+      {hasGameResults ? (
+        <GameResults gameResults={gameResults} currentUserId={currentUserId} />
+      ) : isAwaitingJudging ? (
+        <AwaitingJudging allParticipantsSubmitted={allParticipantsSubmitted} isJudging={isJudging} />
+      ) : (
         <div>
           <div className="relative z-10 container mx-auto px-4 py-6">
             {/* Header with timer and players */}
@@ -418,7 +499,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
             </div>
           </div>
         </div>
-      }
+      )}
 
       {/* Research Modal */}
       {showResearchModal && (
