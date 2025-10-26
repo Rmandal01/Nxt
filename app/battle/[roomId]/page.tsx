@@ -59,7 +59,7 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
 
   const { messages, sendMessage } = useChat({
     transport: new DefaultChatTransport({
-      api: "/api/ai", // So we use the right route, see https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat#transport.default-chat-transport
+      api: "/api/ai",
     }),
   });
 
@@ -80,6 +80,17 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
   const [isResearching, setIsResearching] = useState(false);
   const [showResearchModal, setShowResearchModal] = useState(false);
   const [researchResults, setResearchResults] = useState("");
+
+  // Model selection state
+  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash-exp");
+
+  // Available models
+  const availableModels = [
+    { id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash", provider: "Google" },
+    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
+    { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", provider: "Anthropic"},
+    { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI"},
+  ];
 
   // Mock data - replace with real backend data
   const battleTopic = "Create a marketing email for a sustainable coffee brand"
@@ -203,11 +214,15 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+
+    // Store selected model in localStorage so API can access it
+    localStorage.setItem('selectedModel', selectedModel);
+
     sendMessage({ text: prompt });
     setPrompt("");
-    
+
     if (messagesRef.current) {
-      setAtBottom(true); // Just force it
+      setAtBottom(true);
     }
   };
 
@@ -344,6 +359,17 @@ export default function BattleArena({ params }: { params: Promise<{ roomId: stri
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-semibold">Your Prompt</h3>
                     <div className="flex items-center gap-2">
+                      {/* Model Selector */}
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => setSelectedModel(e.target.value)}
+                        className="px-3 py-1 text-xs bg-background border border-primary/20 rounded-md cursor-pointer hover:border-primary/40 transition-colors"
+                      >
+                        {availableModels.map((model) => (
+                          <option key={model.id} value={model.id}> {model.name}
+                          </option>
+                        ))}
+                      </select>
                       <Badge variant="outline" className="text-xs">
                         {prompt.length} characters
                       </Badge>
