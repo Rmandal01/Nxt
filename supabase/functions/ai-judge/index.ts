@@ -1,48 +1,38 @@
 import { serve } from "std/server";
 import { createClient } from "supabase-js";
+import { google } from "@ai-sdk/google";
+import { generateObject } from "ai";
+import { z } from "zod";
 
 // This is your server-side logic
 async function callAiJudge(
   prompts: { user_id: string; prompt: string }[]
 ) {
   const judgingPrompt = `
-    You are the judge for a prompt engineering game.
-    The goal was to [YOUR GAME TOPIC/GOAL HERE].
+    You are the judge for a prompt engineering game. Your job is to judge the responses and select the winner based on the following criteria:
+    - Creativity
+    - Effectiveness
+    - Clarity
+    - Originality
+
     Here are the submissions from the players:
-    ${prompts.map((p) => `{"user_id": "${p.user_id}", "prompt": "${p.prompt}"}`).join("\n")}
+    ${prompts.map((p) => `User ID: ${p.user_id}\nResponse: ${p.prompt}`).join("\n")}
 
     Please respond *only* with a JSON object containing the "winner_id" and "reasoning".
-    Example: {"winner_id": "user-abc-123", "reasoning": "This prompt was the most creative."}
+    Example: {"winner_id": "user-abc-123", "reasoning": "This response was the most creative."}
   `;
 
   // --- 🚀 CALL YOUR AI (e.g., Google's Gemini API) ---
-  // const response = await fetch("https://generativelanguage.googleapis.com/...", {
-  //   method: "POST",
-  //   body: JSON.stringify({ contents: [{ parts: [{ text: judgingPrompt }] }] }),
-  //   headers: { "Content-Type": "application/json" }
-  // });
-  // const aiData = await response.json();
-  // const aiResponseText = aiData.candidates[0].content.parts[0].text;
-  
-  // ---  MOCK AI RESPONSE (for hackathon testing) ---
-  console.log("Sending to AI:", judgingPrompt);
-  const randomIndex = Math.floor(Math.random() * prompts.length);
-  const aiResponseText = JSON.stringify({
-    winner_id: prompts[randomIndex].user_id,
-    reasoning: "This prompt was randomly selected as the best.",
+  const { object: aiResponseObject } = await generateObject({
+    model: google("gemini-2.0-flash-exp"),
+    prompt: judgingPrompt,
+    schema: z.object({
+      winner_id: z.string().describe("The ID of the winner"),
+      reasoning: z.string().describe("The reasoning for the winner selection"),
+    }),
   });
-  // --- End Mock ---
 
-  try {
-    console.log("Attempting to parse AI response:", aiResponseText);
-    const parsed = JSON.parse(aiResponseText);
-    console.log("Successfully parsed AI response:", parsed);
-    return parsed;
-  } catch (e) {
-    console.error("ERROR: Failed to parse AI response:", aiResponseText);
-    console.error("Parse error:", e);
-    return null;
-  }
+  return aiResponseObject;
 }
 
 // This is the main serverless function
